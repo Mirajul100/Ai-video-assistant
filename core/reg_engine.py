@@ -28,7 +28,7 @@ def build_reg_chain(transcripts: str):
             - Give a clear, accurate, and concise answer.
             - Do not invent what the instructor said.
             - If the transcript mentions a concept but does not include its formula, definition, or details, you may use correct general knowledge to explain it.
-            - For example, if the transcript talks about Softmax but does not show the formula, you can provide the standard Softmax formula.
+            - For example, if the transcript talks about information but does not show the formula, you can provide the standard information formula.
             - Any extra information must be directly related to the lesson.
             - If the transcript does not provide enough context to understand what the user is asking, say:
             "The lesson transcript does not provide enough information to answer this question."
@@ -76,7 +76,7 @@ def load_reg_chain():
             - Give a clear, accurate, and concise answer.
             - Do not invent what the instructor said.
             - If the transcript mentions a concept but does not include its formula, definition, or details, you may use correct general knowledge to explain it.
-            - For example, if the transcript talks about Softmax but does not show the formula, you can provide the standard Softmax formula.
+            - For example, if the transcript talks about information but does not show the formula, you can provide the standard information formula.
             - Any extra information must be directly related to the lesson.
             - If the transcript does not provide enough context to understand what the user is asking, say:
             "The lesson transcript does not provide enough information to answer this question."

@@ -12,7 +12,7 @@ client = genai.Client(
 )
 
 GEMINI_MODEL = os.getenv(
-    "GEMINI_MODEL",
+    "GEMINI_MODEL1",
     "gemini-3.1-flash-lite"
 )
 
@@ -28,6 +28,8 @@ def transcribe_chunks(
 Transcribe only the speech in this audio.
 
 If the speech is Bengali, translate it faithfully into natural English.
+If the speech is Hindi, translate it faithfully into natural English.
+If the speech is Other language, translate it faithfully into natural English.
 If the speech is English, transcribe it exactly.
 Do not summarize.
 Do not explain.
