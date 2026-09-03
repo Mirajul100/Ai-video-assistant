@@ -1,4 +1,5 @@
 import logging
+import shutil
 import uuid
 from pathlib import Path
 
@@ -39,6 +40,7 @@ logger = logging.getLogger("videomind")
 
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR / "frontend"
+DOWNLOADS_DIR = BASE_DIR / "downloads"
 
 app = FastAPI(
     title="VideoMind API",
@@ -125,15 +127,53 @@ def normalize_documents(items) -> list[Document]:
     )
 
 
-def to_list(text: str) -> list[str]:
+def to_list(text) -> list[str]:
     if not text:
         return []
+
+    if isinstance(text, list):
+        return [
+            str(item).strip()
+            for item in text
+            if str(item).strip()
+        ]
 
     return [
         line.strip()
         for line in str(text).strip().split("\n")
         if line.strip()
     ]
+
+
+def cleanup_downloads():
+    if not DOWNLOADS_DIR.exists():
+        DOWNLOADS_DIR.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+        return
+
+    try:
+        for item in DOWNLOADS_DIR.iterdir():
+            try:
+                if item.is_dir():
+                    shutil.rmtree(item)
+                else:
+                    item.unlink()
+            except Exception as exc:
+                logger.warning(
+                    "Failed to remove %s: %s",
+                    item,
+                    exc,
+                )
+
+        logger.info("Downloads folder cleaned successfully.")
+
+    except Exception as exc:
+        logger.warning(
+            "Failed to clean downloads folder: %s",
+            exc,
+        )
 
 
 @app.get("/", include_in_schema=False)
@@ -173,9 +213,17 @@ def process_video(
             detail="A video URL is required.",
         )
 
-    logger.info("Starting video processing: %s", url)
+    logger.info(
+        "Starting video processing: %s",
+        url,
+    )
 
     try:
+        DOWNLOADS_DIR.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
         logger.info("Processing audio...")
 
         chunks = process_audio_input(
@@ -228,6 +276,11 @@ def process_video(
             transcript_docs
         )
 
+        if not transcript_text.strip():
+            raise ValueError(
+                "Combined transcript is empty."
+            )
+
         logger.info("Generating summary...")
 
         summary = summarize_transcript(
@@ -270,6 +323,8 @@ def process_video(
             session_id,
         )
 
+        cleanup_downloads()
+
         return ProcessResponse(
             success=True,
             session_id=session_id,
@@ -289,6 +344,8 @@ def process_video(
             url,
         )
 
+        cleanup_downloads()
+
         raise HTTPException(
             status_code=500,
             detail=f"PROCESS ERROR: {str(exc)}",
@@ -303,20 +360,14 @@ def ask(
     payload: AskRequest,
 ) -> AskResponse:
 
-    session = sessions.get(
-        payload.session_id
-    )
-
-    if session is None:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                "Session not found. "
-                "Analyze a video first."
-            ),
-        )
-
+    session_id = payload.session_id.strip()
     question = payload.question.strip()
+
+    if not session_id:
+        raise HTTPException(
+            status_code=400,
+            detail="A session ID is required.",
+        )
 
     if not question:
         raise HTTPException(
@@ -324,9 +375,17 @@ def ask(
             detail="A question is required.",
         )
 
+    session = sessions.get(session_id)
+
+    if session is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found. Analyze a video first.",
+        )
+
     logger.info(
         "Question received for session %s: %s",
-        payload.session_id,
+        session_id,
         question,
     )
 
@@ -344,7 +403,7 @@ def ask(
     except Exception as exc:
         logger.exception(
             "Failed to answer question for session %s",
-            payload.session_id,
+            session_id,
         )
 
         raise HTTPException(
