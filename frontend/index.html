@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VideoMind — Turn YouTube videos into instant knowledge</title>
+  <meta name="description" content="Paste a YouTube video and let AI transcribe, summarize, analyze, and answer questions about it." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- ============ NAVBAR ============ -->
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a class="brand" href="#top" aria-label="VideoMind home">
+        <span class="brand-mark" aria-hidden="true">◉</span>
+        <span class="brand-name">VideoMind</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#top">Home</a>
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it works</a>
+      </nav>
+
+      <div class="navbar-status" role="status" aria-label="AI service status: online">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>AI Powered</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="top">
+      <div class="hero-content">
+        <p class="eyebrow"><span aria-hidden="true">✦</span> AI Video Analysis</p>
+        <h1 class="hero-title">
+          Turn YouTube videos
+          <span class="hero-title-accent">into instant knowledge</span>
+        </h1>
+        <p class="hero-subtitle">
+          Paste a YouTube video and let AI transcribe, summarize, analyze, and
+          answer questions about it.
+        </p>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="waveform" id="heroWaveform"></div>
+      </div>
+    </section>
+
+    <!-- ============ INPUT CARD ============ -->
+    <section class="input-section" aria-label="Analyze a video">
+      <form class="input-card" id="analyzeForm" novalidate>
+        <div class="input-card-panel" id="inputPanel">
+          <div class="field">
+            <label for="videoUrl">YouTube video URL</label>
+            <div class="url-field">
+              <svg class="url-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="5" width="20" height="14" rx="4" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M10 9.5L15 12L10 14.5V9.5Z" fill="currentColor"/>
+              </svg>
+              <input
+                type="text"
+                id="videoUrl"
+                name="videoUrl"
+                placeholder="Paste a YouTube URL..."
+                autocomplete="off"
+                inputmode="url"
+                aria-describedby="urlError"
+              />
+            </div>
+            <p class="field-error" id="urlError" role="alert" hidden></p>
+          </div>
+
+          <div class="field field-lang">
+            <label for="language">Language</label>
+            <div class="select-field">
+              <select id="language" name="language">
+                <option value="english">English</option>
+                <option value="bangla">বাংলা</option>
+                <option value="hindi">Hindi</option>
+                <option value="spanish">Spanish</option>
+              </select>
+              <svg class="select-chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-analyze" id="analyzeBtn">
+            <span class="btn-label">
+              <span aria-hidden="true">✦</span> Analyze video
+            </span>
+            <span class="btn-spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============ FEATURES ============ -->
+    <section class="features" id="features">
+      <article class="feature">
+        <span class="feature-index">01</span>
+        <h3>Accurate transcription</h3>
+        <p>Audio is extracted, chunked, and transcribed so nothing from the video gets lost.</p>
+      </article>
+      <article class="feature">
+        <span class="feature-index">02</span>
+        <h3>Structured summaries</h3>
+        <p>A title, summary, and key points are generated so you can scan a video in seconds.</p>
+      </article>
+      <article class="feature">
+        <span class="feature-index">03</span>
+        <h3>Answers, not guesses</h3>
+        <p>Ask anything about the video and get answers grounded in its transcript.</p>
+      </article>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="how-it-works" id="how-it-works">
+      <h2>How it works</h2>
+      <ol class="pipeline">
+        <li><span class="pipeline-index">01</span><span class="pipeline-label">Extract audio from the video</span></li>
+        <li><span class="pipeline-index">02</span><span class="pipeline-label">Transcribe speech to text</span></li>
+        <li><span class="pipeline-index">03</span><span class="pipeline-label">Summarize and pull out key points</span></li>
+        <li><span class="pipeline-index">04</span><span class="pipeline-label">Ask AI anything about the video</span></li>
+      </ol>
+    </section>
+
+    <!-- ============ RESULTS AREA ============ -->
+    <section class="results-area" id="resultsArea" aria-live="polite">
+
+      <!-- Empty state -->
+      <div class="state-card empty-state" id="emptyState">
+        <span class="empty-mark" aria-hidden="true">✦</span>
+        <p class="empty-title">Your video insights will appear here</p>
+        <p class="empty-subtitle">Paste a YouTube URL above to get started.</p>
+      </div>
+
+      <!-- Loading state -->
+      <div class="state-card loading-state" id="loadingState" hidden aria-busy="true">
+        <div class="loading-glow" aria-hidden="true"></div>
+        <h2 class="loading-title">Analyzing your video</h2>
+        <p class="loading-subtitle" id="loadingSubtitle">This may take a few moments.</p>
+      </div>
+
+      <!-- Error state -->
+      <div class="state-card error-state" id="errorState" hidden>
+        <span class="error-mark" aria-hidden="true">!</span>
+        <h2 class="error-title">Something went wrong</h2>
+        <p class="error-message" id="errorMessage">We couldn't process this video. Please check the URL and try again.</p>
+        <button type="button" class="btn btn-secondary" id="retryBtn">Try again</button>
+      </div>
+
+      <!-- Dashboard -->
+      <div class="dashboard" id="dashboard" hidden>
+
+        <!-- Title card -->
+        <div class="card title-card">
+          <span class="badge">AI generated</span>
+          <h2 class="video-title" id="videoTitle"></h2>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Summary -->
+          <div class="card summary-card">
+            <div class="card-header">
+              <h3>Summary</h3>
+              <button type="button" class="icon-btn copy-btn" data-copy-target="summaryText" aria-label="Copy summary">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/></svg>
+                <span>Copy</span>
+              </button>
+            </div>
+            <p class="summary-text" id="summaryText"></p>
+          </div>
+
+          <!-- AI Insights -->
+          <div class="card insights-card">
+            <div class="card-header">
+              <h3>AI insights</h3>
+            </div>
+            <dl class="insights-list">
+              <div class="insight-row">
+                <dt>Key points</dt>
+                <dd id="insightKeyPoints">—</dd>
+              </div>
+              <div class="insight-row">
+                <dt>Suggested questions</dt>
+                <dd id="insightQuestions">—</dd>
+              </div>
+              <div class="insight-row">
+                <dt>Transcript length</dt>
+                <dd id="insightTranscriptLength">—</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <!-- Key points -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Key points</h3>
+          </div>
+          <ol class="key-points" id="keyPointsList"></ol>
+        </div>
+
+        <!-- Important questions -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Important questions</h3>
+          </div>
+          <p class="card-hint">Select a question to ask the AI directly.</p>
+          <ul class="questions-list" id="questionsList"></ul>
+        </div>
+
+        <!-- Ask AI -->
+        <div class="card ask-card" id="askCard">
+          <div class="card-header">
+            <h3>Ask AI about this video</h3>
+          </div>
+          <p class="card-hint">Ask anything about the content of this video.</p>
+
+          <form class="ask-form" id="askForm">
+            <label class="visually-hidden" for="askInput">Ask a question</label>
+            <input
+              type="text"
+              id="askInput"
+              name="askInput"
+              placeholder="Ask a question..."
+              autocomplete="off"
+            />
+            <button type="submit" class="btn btn-primary" id="askBtn">
+              <span class="btn-label">Ask AI</span>
+              <span class="btn-spinner" aria-hidden="true"></span>
+            </button>
+          </form>
+
+          <div class="ai-thinking" id="aiThinking" hidden aria-live="polite">
+            <span class="thinking-dot"></span>
+            <span class="thinking-dot"></span>
+            <span class="thinking-dot"></span>
+            <span>AI is thinking…</span>
+          </div>
+
+          <div class="answer-card" id="answerCard" hidden>
+            <div class="card-header">
+              <h4>AI answer</h4>
+              <button type="button" class="icon-btn copy-btn" data-copy-target="answerText" aria-label="Copy answer">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/></svg>
+                <span>Copy answer</span>
+              </button>
+            </div>
+            <p id="answerText"></p>
+          </div>
+        </div>
+
+        <!-- Transcript -->
+        <div class="card transcript-card">
+          <div class="card-header">
+            <h3>Transcript</h3>
+            <div class="transcript-actions">
+              <button type="button" class="icon-btn copy-btn" data-copy-target="transcriptText" aria-label="Copy transcript">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/></svg>
+                <span>Copy transcript</span>
+              </button>
+              <button type="button" class="icon-btn transcript-toggle" id="transcriptToggle" aria-expanded="false" aria-controls="transcriptBody">
+                <span>Show</span>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="transcript-body" id="transcriptBody" hidden>
+            <p id="transcriptText"></p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span class="brand-mark" aria-hidden="true">◉</span>
+    <span>VideoMind — AI video intelligence</span>
+  </footer>
+
+  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/interact.js"></script>
+</body>
+</html>
