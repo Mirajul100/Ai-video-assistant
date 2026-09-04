@@ -1,296 +1,478 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VideoMind — Turn YouTube videos into instant knowledge</title>
-  <meta name="description" content="Paste a YouTube video and let AI transcribe, summarize, analyze, and answer questions about it." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lumen — AI Video Lesson Assistant</title>
+<meta name="description" content="Paste a YouTube lesson link and get a transcript, summary, key points, and interactive Q&A." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to content</a>
 
-  <!-- ============ NAVBAR ============ -->
-  <header class="navbar">
-    <div class="navbar-inner">
-      <a class="brand" href="#top" aria-label="VideoMind home">
-        <span class="brand-mark" aria-hidden="true">◉</span>
-        <span class="brand-name">VideoMind</span>
-      </a>
+<a class="skip-link" href="#main-content">Skip to main content</a>
 
-      <nav class="nav-links" aria-label="Primary">
-        <a href="#top">Home</a>
-        <a href="#features">Features</a>
-        <a href="#how-it-works">How it works</a>
-      </nav>
+<!-- Mobile sidebar backdrop -->
+<div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
 
-      <div class="navbar-status" role="status" aria-label="AI service status: online">
-        <span class="status-dot" aria-hidden="true"></span>
-        <span>AI Powered</span>
+<div class="app-shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <div class="sidebar__brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#brandGrad)"/>
+          <rect x="8" y="17" width="3.2" height="8" rx="1.6" fill="#0B0E14"/>
+          <rect x="14.4" y="10" width="3.2" height="15" rx="1.6" fill="#0B0E14"/>
+          <rect x="20.8" y="14" width="3.2" height="11" rx="1.6" fill="#0B0E14"/>
+          <defs>
+            <linearGradient id="brandGrad" x1="1" y1="1" x2="31" y2="31" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#F0B65C"/>
+              <stop offset="1" stop-color="#E8A23C"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </span>
+      <span class="brand-name">Lumen<span class="brand-name__accent">.ai</span></span>
+    </div>
+
+    <nav class="sidebar__nav" aria-label="Primary">
+      <ul class="nav-list" role="list">
+        <li><button class="nav-item is-active" data-view="dashboard" aria-current="page">
+          <span class="nav-item__icon">{{icon:grid}}</span><span class="nav-item__label">Dashboard</span>
+        </button></li>
+        <li><button class="nav-item" data-view="upload">
+          <span class="nav-item__icon">{{icon:video}}</span><span class="nav-item__label">Add Video</span>
+        </button></li>
+        <li><button class="nav-item" data-view="transcript">
+          <span class="nav-item__icon">{{icon:doc}}</span><span class="nav-item__label">Transcript</span>
+        </button></li>
+        <li><button class="nav-item" data-view="summary">
+          <span class="nav-item__icon">{{icon:layers}}</span><span class="nav-item__label">Summary</span>
+        </button></li>
+        <li><button class="nav-item" data-view="keypoints">
+          <span class="nav-item__icon">{{icon:star}}</span><span class="nav-item__label">Key Points</span>
+        </button></li>
+        <li><button class="nav-item" data-view="questions">
+          <span class="nav-item__icon">{{icon:question}}</span><span class="nav-item__label">Questions</span>
+        </button></li>
+        <li><button class="nav-item" data-view="ask-ai">
+          <span class="nav-item__icon">{{icon:chat}}</span><span class="nav-item__label">Ask AI</span>
+          <span class="nav-item__dot" id="chatUnreadDot" hidden></span>
+        </button></li>
+        <li><button class="nav-item" data-view="settings">
+          <span class="nav-item__icon">{{icon:gear}}</span><span class="nav-item__label">Settings</span>
+        </button></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="lesson-chip" id="sidebarLessonChip" hidden>
+        <span class="lesson-chip__dot" id="sidebarStatusDot"></span>
+        <span class="lesson-chip__text" id="sidebarLessonName">No lesson loaded</span>
       </div>
     </div>
-  </header>
+  </aside>
 
-  <main id="main">
-    <!-- ============ HERO ============ -->
-    <section class="hero" id="top">
-      <div class="hero-content">
-        <p class="eyebrow"><span aria-hidden="true">✦</span> AI Video Analysis</p>
-        <h1 class="hero-title">
-          Turn YouTube videos
-          <span class="hero-title-accent">into instant knowledge</span>
-        </h1>
-        <p class="hero-subtitle">
-          Paste a YouTube video and let AI transcribe, summarize, analyze, and
-          answer questions about it.
-        </p>
+  <!-- ============ MAIN COLUMN ============ -->
+  <div class="main-column">
+
+    <!-- ============ TOPBAR ============ -->
+    <header class="topbar">
+      <div class="topbar__left">
+        <button class="icon-btn topbar__menu-btn" id="menuToggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="sidebar">
+          {{icon:menu}}
+        </button>
+        <h1 class="topbar__title" id="topbarTitle">Dashboard</h1>
       </div>
-
-      <div class="hero-visual" aria-hidden="true">
-        <div class="waveform" id="heroWaveform"></div>
-      </div>
-    </section>
-
-    <!-- ============ INPUT CARD ============ -->
-    <section class="input-section" aria-label="Analyze a video">
-      <form class="input-card" id="analyzeForm" novalidate>
-        <div class="input-card-panel" id="inputPanel">
-          <div class="field">
-            <label for="videoUrl">YouTube video URL</label>
-            <div class="url-field">
-              <svg class="url-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="5" width="20" height="14" rx="4" stroke="currentColor" stroke-width="1.6"/>
-                <path d="M10 9.5L15 12L10 14.5V9.5Z" fill="currentColor"/>
-              </svg>
-              <input
-                type="text"
-                id="videoUrl"
-                name="videoUrl"
-                placeholder="Paste a YouTube URL..."
-                autocomplete="off"
-                inputmode="url"
-                aria-describedby="urlError"
-              />
-            </div>
-            <p class="field-error" id="urlError" role="alert" hidden></p>
-          </div>
-
-          <div class="field field-lang">
-            <label for="language">Language</label>
-            <div class="select-field">
-              <select id="language" name="language">
-                <option value="english">English</option>
-                <option value="bangla">বাংলা</option>
-                <option value="hindi">Hindi</option>
-                <option value="spanish">Spanish</option>
-              </select>
-              <svg class="select-chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-analyze" id="analyzeBtn">
-            <span class="btn-label">
-              <span aria-hidden="true">✦</span> Analyze video
-            </span>
-            <span class="btn-spinner" aria-hidden="true"></span>
+      <div class="topbar__right">
+        <div class="topbar__action-wrap">
+          <button class="icon-btn" id="searchBtn" aria-label="Search transcript">{{icon:search}}</button>
+        </div>
+        <div class="topbar__action-wrap">
+          <button class="icon-btn" id="notifBtn" aria-haspopup="true" aria-expanded="false" aria-label="Notifications">
+            {{icon:bell}}
+            <span class="icon-btn__badge" id="notifBadge" hidden>0</span>
           </button>
-        </div>
-      </form>
-    </section>
-
-    <!-- ============ FEATURES ============ -->
-    <section class="features" id="features">
-      <article class="feature">
-        <span class="feature-index">01</span>
-        <h3>Accurate transcription</h3>
-        <p>Audio is extracted, chunked, and transcribed so nothing from the video gets lost.</p>
-      </article>
-      <article class="feature">
-        <span class="feature-index">02</span>
-        <h3>Structured summaries</h3>
-        <p>A title, summary, and key points are generated so you can scan a video in seconds.</p>
-      </article>
-      <article class="feature">
-        <span class="feature-index">03</span>
-        <h3>Answers, not guesses</h3>
-        <p>Ask anything about the video and get answers grounded in its transcript.</p>
-      </article>
-    </section>
-
-    <!-- ============ HOW IT WORKS ============ -->
-    <section class="how-it-works" id="how-it-works">
-      <h2>How it works</h2>
-      <ol class="pipeline">
-        <li><span class="pipeline-index">01</span><span class="pipeline-label">Extract audio from the video</span></li>
-        <li><span class="pipeline-index">02</span><span class="pipeline-label">Transcribe speech to text</span></li>
-        <li><span class="pipeline-index">03</span><span class="pipeline-label">Summarize and pull out key points</span></li>
-        <li><span class="pipeline-index">04</span><span class="pipeline-label">Ask AI anything about the video</span></li>
-      </ol>
-    </section>
-
-    <!-- ============ RESULTS AREA ============ -->
-    <section class="results-area" id="resultsArea" aria-live="polite">
-
-      <!-- Empty state -->
-      <div class="state-card empty-state" id="emptyState">
-        <span class="empty-mark" aria-hidden="true">✦</span>
-        <p class="empty-title">Your video insights will appear here</p>
-        <p class="empty-subtitle">Paste a YouTube URL above to get started.</p>
-      </div>
-
-      <!-- Loading state -->
-      <div class="state-card loading-state" id="loadingState" hidden aria-busy="true">
-        <div class="loading-glow" aria-hidden="true"></div>
-        <h2 class="loading-title">Analyzing your video</h2>
-        <p class="loading-subtitle" id="loadingSubtitle">This may take a few moments.</p>
-      </div>
-
-      <!-- Error state -->
-      <div class="state-card error-state" id="errorState" hidden>
-        <span class="error-mark" aria-hidden="true">!</span>
-        <h2 class="error-title">Something went wrong</h2>
-        <p class="error-message" id="errorMessage">We couldn't process this video. Please check the URL and try again.</p>
-        <button type="button" class="btn btn-secondary" id="retryBtn">Try again</button>
-      </div>
-
-      <!-- Dashboard -->
-      <div class="dashboard" id="dashboard" hidden>
-
-        <!-- Title card -->
-        <div class="card title-card">
-          <span class="badge">AI generated</span>
-          <h2 class="video-title" id="videoTitle"></h2>
-        </div>
-
-        <div class="dashboard-grid">
-          <!-- Summary -->
-          <div class="card summary-card">
-            <div class="card-header">
-              <h3>Summary</h3>
-              <button type="button" class="icon-btn copy-btn" data-copy-target="summaryText" aria-label="Copy summary">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/></svg>
-                <span>Copy</span>
-              </button>
+          <div class="dropdown-panel" id="notifPanel" role="menu" hidden>
+            <div class="dropdown-panel__header">
+              <span>Notifications</span>
+              <button class="text-link" id="clearNotifsBtn">Clear all</button>
             </div>
-            <p class="summary-text" id="summaryText"></p>
+            <ul class="notif-list" id="notifList">
+              <li class="notif-empty">You're all caught up.</li>
+            </ul>
           </div>
-
-          <!-- AI Insights -->
-          <div class="card insights-card">
-            <div class="card-header">
-              <h3>AI insights</h3>
+        </div>
+        <div class="topbar__action-wrap">
+          <button class="profile-btn" id="profileBtn" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+            <span class="avatar">MR</span>
+          </button>
+          <div class="dropdown-panel dropdown-panel--profile" id="profilePanel" role="menu" hidden>
+            <div class="dropdown-panel__profile">
+              <span class="avatar avatar--lg">MR</span>
+              <div>
+                <p class="dropdown-panel__name">Maya Rahman</p>
+                <p class="dropdown-panel__role">Teacher account</p>
+              </div>
             </div>
-            <dl class="insights-list">
-              <div class="insight-row">
-                <dt>Key points</dt>
-                <dd id="insightKeyPoints">—</dd>
+            <button class="dropdown-item" data-view="settings" role="menuitem">{{icon:gear}} Settings</button>
+            <button class="dropdown-item" id="signOutBtn" role="menuitem">{{icon:logout}} Sign out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============ MAIN CONTENT ============ -->
+    <main class="main-content" id="main-content">
+
+      <!-- ===================== DASHBOARD ===================== -->
+      <section class="view is-active" id="view-dashboard" data-view="dashboard" aria-labelledby="topbarTitle">
+
+        <!-- Empty state: no lesson yet -->
+        <div id="dashboardEmptyState">
+          <div class="hero">
+            <div class="hero__copy">
+              <p class="hero__eyebrow">AI Video Lesson Assistant</p>
+              <h2 class="hero__title">Learn Smarter with AI</h2>
+              <p class="hero__subtitle">Paste a YouTube lesson link and turn it into a clear transcript, summary, key points, and interactive Q&amp;A.</p>
+              <div class="hero__actions">
+                <button class="btn btn--primary" id="heroAddVideoBtn">{{icon:video}} Add a YouTube video</button>
               </div>
-              <div class="insight-row">
-                <dt>Suggested questions</dt>
-                <dd id="insightQuestions">—</dd>
+              <button class="btn-text" id="heroDemoBtn">Or try a sample lesson →</button>
+            </div>
+            <div class="hero__visual" aria-hidden="true">
+              <div class="wave-panel">
+                <div class="wave-bars">
+                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="wave-panel__line"></div>
+                <div class="wave-panel__text-lines">
+                  <span></span><span></span><span></span>
+                </div>
               </div>
-              <div class="insight-row">
-                <dt>Transcript length</dt>
-                <dd id="insightTranscriptLength">—</dd>
-              </div>
-            </dl>
+            </div>
+          </div>
+
+          <div class="pipeline-strip">
+            <div class="pipeline-card">
+              <span class="pipeline-card__icon">{{icon:doc}}</span>
+              <h3>Transcribe</h3>
+              <p>Every word turned into an accurate English transcript.</p>
+            </div>
+            <div class="pipeline-card">
+              <span class="pipeline-card__icon">{{icon:layers}}</span>
+              <h3>Summarize</h3>
+              <p>A clear summary of what the video actually teaches.</p>
+            </div>
+            <div class="pipeline-card">
+              <span class="pipeline-card__icon">{{icon:star}}</span>
+              <h3>Extract key points</h3>
+              <p>The ideas worth remembering, pulled out and organized.</p>
+            </div>
+            <div class="pipeline-card">
+              <span class="pipeline-card__icon">{{icon:chat}}</span>
+              <h3>Ask anything</h3>
+              <p>Get answers straight from the video's own words.</p>
+            </div>
           </div>
         </div>
 
-        <!-- Key points -->
-        <div class="card">
-          <div class="card-header">
-            <h3>Key points</h3>
+        <!-- Populated state: lesson ready -->
+        <div id="dashboardLessonState" hidden>
+          <div class="lesson-overview card">
+            <div class="lesson-overview__top">
+              <div class="lesson-overview__heading">
+                <img class="lesson-overview__thumb" id="overviewThumb" src="" alt="" />
+                <div>
+                  <p class="status-badge" id="lessonStatusBadge">Ready</p>
+                  <h2 class="lesson-overview__title" id="overviewTitle">Lesson title</h2>
+                </div>
+              </div>
+              <button class="btn btn--outline" id="newLessonBtn">{{icon:video}} Process another video</button>
+            </div>
+            <div class="stat-grid">
+              <div class="stat">
+                <span class="stat__label">Source</span>
+                <a class="stat__value stat__link" id="overviewSourceLink" href="#" target="_blank" rel="noopener noreferrer">
+                  <span id="overviewSourceLabel">Watch on YouTube</span><span aria-hidden="true">{{icon:external}}</span>
+                </a>
+              </div>
+              <div class="stat">
+                <span class="stat__label">Words transcribed</span>
+                <span class="stat__value" id="overviewWordCount">—</span>
+              </div>
+              <div class="stat">
+                <span class="stat__label">Key points</span>
+                <span class="stat__value" id="overviewKeypointCount">—</span>
+              </div>
+              <div class="stat">
+                <span class="stat__label">Processed</span>
+                <span class="stat__value" id="overviewProcessedAt">—</span>
+              </div>
+            </div>
           </div>
-          <ol class="key-points" id="keyPointsList"></ol>
-        </div>
 
-        <!-- Important questions -->
-        <div class="card">
-          <div class="card-header">
-            <h3>Important questions</h3>
-          </div>
-          <p class="card-hint">Select a question to ask the AI directly.</p>
-          <ul class="questions-list" id="questionsList"></ul>
-        </div>
-
-        <!-- Ask AI -->
-        <div class="card ask-card" id="askCard">
-          <div class="card-header">
-            <h3>Ask AI about this video</h3>
-          </div>
-          <p class="card-hint">Ask anything about the content of this video.</p>
-
-          <form class="ask-form" id="askForm">
-            <label class="visually-hidden" for="askInput">Ask a question</label>
-            <input
-              type="text"
-              id="askInput"
-              name="askInput"
-              placeholder="Ask a question..."
-              autocomplete="off"
-            />
-            <button type="submit" class="btn btn-primary" id="askBtn">
-              <span class="btn-label">Ask AI</span>
-              <span class="btn-spinner" aria-hidden="true"></span>
+          <div class="quicklink-grid">
+            <button class="quicklink-card" data-view="summary">
+              <span class="quicklink-card__icon">{{icon:layers}}</span>
+              <span class="quicklink-card__title">Summary</span>
+              <span class="quicklink-card__desc">Read the full lesson summary</span>
             </button>
+            <button class="quicklink-card" data-view="keypoints">
+              <span class="quicklink-card__icon">{{icon:star}}</span>
+              <span class="quicklink-card__title">Key Points</span>
+              <span class="quicklink-card__desc" id="quicklinkKeypointsCount">The core ideas, organized</span>
+            </button>
+            <button class="quicklink-card" data-view="questions">
+              <span class="quicklink-card__icon">{{icon:question}}</span>
+              <span class="quicklink-card__title">Questions</span>
+              <span class="quicklink-card__desc" id="quicklinkQuestionsCount">Important questions to review</span>
+            </button>
+            <button class="quicklink-card" data-view="ask-ai">
+              <span class="quicklink-card__icon">{{icon:chat}}</span>
+              <span class="quicklink-card__title">Ask AI</span>
+              <span class="quicklink-card__desc">Chat with your lesson</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== ADD VIDEO ===================== -->
+      <section class="view" id="view-upload" data-view="upload" aria-labelledby="topbarTitle">
+
+        <div id="uploadIdleState">
+          <div class="url-card card">
+            <h2>Add a YouTube lesson</h2>
+            <p class="url-card__desc">Paste a link to a YouTube video below, then choose what you'd like first — Lumen processes the whole video either way, so every tab is ready once it's done.</p>
+
+            <div class="url-field">
+              <span class="url-field__icon">{{icon:video}}</span>
+              <input type="url" id="youtubeUrlInput" class="url-field__input" placeholder="https://www.youtube.com/watch?v=…" aria-label="YouTube video link" autocomplete="off" />
+              <button class="icon-btn icon-btn--sm" id="clearUrlBtn" aria-label="Clear link" hidden>{{icon:close}}</button>
+            </div>
+
+            <div class="video-thumb-preview" id="videoThumbPreview" hidden>
+              <img id="videoThumbImg" src="" alt="" />
+              <span class="video-thumb-preview__badge">{{icon:check}} Link looks good</span>
+            </div>
+
+            <div class="url-card__actions">
+              <button class="btn btn--primary" id="actionSummaryBtn" data-target-view="summary">{{icon:layers}} Summarize</button>
+              <button class="btn btn--secondary" id="actionKeypointsBtn" data-target-view="keypoints">{{icon:star}} Key Points</button>
+              <button class="btn btn--secondary" id="actionQuestionsBtn" data-target-view="questions">{{icon:question}} Questions</button>
+              <button class="btn btn--secondary" id="actionAskBtn" data-target-view="ask-ai">{{icon:chat}} Ask AI</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="error-banner" id="uploadErrorBanner" hidden role="alert">
+          <span class="error-banner__icon">{{icon:alert}}</span>
+          <div>
+            <p class="error-banner__title">We couldn't process this link</p>
+            <p class="error-banner__message" id="uploadErrorMessage"></p>
+          </div>
+          <button class="icon-btn icon-btn--sm" id="dismissUploadError" aria-label="Dismiss">{{icon:close}}</button>
+        </div>
+
+        <!-- Processing card -->
+        <div class="card processing-card" id="processingCard" hidden aria-live="polite">
+          <div class="processing-card__header">
+            <h2>Preparing your lesson</h2>
+            <span class="processing-card__percent" id="processingPercent">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <ol class="step-list" id="stepList">
+            <li class="step" data-step="1"><span class="step__marker">{{icon:check}}</span><span class="step__label">Fetching video</span></li>
+            <li class="step" data-step="2"><span class="step__marker">{{icon:check}}</span><span class="step__label">Extracting audio</span></li>
+            <li class="step" data-step="3"><span class="step__marker">{{icon:check}}</span><span class="step__label">Transcribing</span></li>
+            <li class="step" data-step="4"><span class="step__marker">{{icon:check}}</span><span class="step__label">Generating summary</span></li>
+            <li class="step" data-step="5"><span class="step__marker">{{icon:check}}</span><span class="step__label">Extracting key points</span></li>
+            <li class="step" data-step="6"><span class="step__marker">{{icon:check}}</span><span class="step__label">Generating questions</span></li>
+            <li class="step" data-step="7"><span class="step__marker">{{icon:check}}</span><span class="step__label">Preparing AI assistant</span></li>
+          </ol>
+        </div>
+
+        <!-- Processing failure -->
+        <div class="card error-state" id="processingErrorCard" hidden>
+          <span class="error-state__icon">{{icon:alert}}</span>
+          <h2>Something went wrong while processing this video</h2>
+          <p id="processingErrorMessage">Please try again.</p>
+          <div class="error-state__actions">
+            <button class="btn btn--primary" id="retryProcessingBtn">Try again</button>
+            <button class="btn btn--outline" id="cancelProcessingBtn">Start over</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================== TRANSCRIPT ===================== -->
+      <section class="view" id="view-transcript" data-view="transcript" aria-labelledby="topbarTitle">
+        <div class="empty-state" id="transcriptEmpty">
+          <span class="empty-state__icon">{{icon:doc}}</span>
+          <h2>No transcript yet</h2>
+          <p>Add a YouTube video to generate a full English transcript.</p>
+          <button class="btn btn--primary" data-view="upload">Add a video</button>
+        </div>
+
+        <div id="transcriptSkeleton" hidden>
+          <div class="skeleton skeleton--line w-40"></div>
+          <div class="skeleton skeleton--block"></div>
+        </div>
+
+        <div class="card transcript-card" id="transcriptContent" hidden>
+          <div class="transcript-toolbar">
+            <div class="search-field">
+              <span class="search-field__icon">{{icon:search}}</span>
+              <input type="text" id="transcriptSearch" placeholder="Search the transcript" aria-label="Search transcript" />
+              <span class="search-field__count" id="transcriptMatchCount"></span>
+            </div>
+            <button class="btn btn--ghost" id="copyTranscriptBtn">{{icon:copy}} Copy transcript</button>
+          </div>
+          <div class="transcript-body" id="transcriptBody" tabindex="0"></div>
+        </div>
+      </section>
+
+      <!-- ===================== SUMMARY ===================== -->
+      <section class="view" id="view-summary" data-view="summary" aria-labelledby="topbarTitle">
+        <div class="empty-state" id="summaryEmpty">
+          <span class="empty-state__icon">{{icon:layers}}</span>
+          <h2>No summary yet</h2>
+          <p>Add a video and Lumen will summarize it for you.</p>
+          <button class="btn btn--primary" data-view="upload">Add a video</button>
+        </div>
+
+        <div id="summarySkeleton" hidden>
+          <div class="skeleton skeleton--line w-30"></div>
+          <div class="skeleton skeleton--line w-100"></div>
+          <div class="skeleton skeleton--line w-90"></div>
+          <div class="skeleton skeleton--line w-70"></div>
+        </div>
+
+        <div class="card summary-card" id="summaryContent" hidden>
+          <div class="summary-card__header">
+            <h2 id="summaryLessonTitle">Lesson summary</h2>
+            <div class="summary-card__actions">
+              <button class="btn btn--ghost" id="copySummaryBtn">{{icon:copy}} Copy</button>
+              <button class="btn btn--ghost" id="toggleSummaryBtn" aria-expanded="false">{{icon:chevron}} Expand</button>
+            </div>
+          </div>
+          <p class="summary-card__text" id="summaryText"></p>
+        </div>
+      </section>
+
+      <!-- ===================== KEY POINTS ===================== -->
+      <section class="view" id="view-keypoints" data-view="keypoints" aria-labelledby="topbarTitle">
+        <div class="empty-state" id="keypointsEmpty">
+          <span class="empty-state__icon">{{icon:star}}</span>
+          <h2>No key points yet</h2>
+          <p>Add a video to see its most important ideas.</p>
+          <button class="btn btn--primary" data-view="upload">Add a video</button>
+        </div>
+
+        <div class="keypoints-grid" id="keypointsSkeleton" hidden>
+          <div class="skeleton skeleton--card"></div>
+          <div class="skeleton skeleton--card"></div>
+          <div class="skeleton skeleton--card"></div>
+        </div>
+
+        <div class="keypoints-grid" id="keypointsGrid" hidden></div>
+      </section>
+
+      <!-- ===================== QUESTIONS ===================== -->
+      <section class="view" id="view-questions" data-view="questions" aria-labelledby="topbarTitle">
+        <div class="empty-state" id="questionsEmpty">
+          <span class="empty-state__icon">{{icon:question}}</span>
+          <h2>No questions yet</h2>
+          <p>Add a video to see the questions Lumen thinks matter most.</p>
+          <button class="btn btn--primary" data-view="upload">Add a video</button>
+        </div>
+
+        <div id="questionsSkeleton" hidden>
+          <div class="skeleton skeleton--line w-100"></div>
+          <div class="skeleton skeleton--line w-90"></div>
+          <div class="skeleton skeleton--line w-80"></div>
+        </div>
+
+        <p class="view-intro" id="questionsIntro" hidden>Tap a question to ask the AI assistant about it.</p>
+        <ul class="questions-list" id="questionsList" hidden></ul>
+      </section>
+
+      <!-- ===================== ASK AI ===================== -->
+      <section class="view" id="view-ask-ai" data-view="ask-ai" aria-labelledby="topbarTitle">
+        <div class="chat-shell card">
+          <div class="chat-shell__header">
+            <div>
+              <h2>Ask AI About This Lesson</h2>
+              <p>Ask questions and get answers based only on the video's transcript.</p>
+            </div>
+            <button class="btn btn--ghost" id="clearChatBtn">{{icon:trash}} Clear chat</button>
+          </div>
+
+          <div class="chat-messages" id="chatMessages" aria-live="polite">
+            <div class="chat-empty" id="chatEmptyState">
+              <span class="chat-empty__icon">{{icon:chat}}</span>
+              <p>Add a video, then ask anything about it. Answers stay grounded in the transcript — nothing else.</p>
+            </div>
+          </div>
+
+          <form class="chat-input-bar" id="chatForm">
+            <textarea
+              id="chatInput"
+              class="chat-input"
+              placeholder="Ask about this lesson…"
+              rows="1"
+              aria-label="Ask a question about this lesson"
+              disabled></textarea>
+            <button class="chat-send-btn" type="submit" id="chatSendBtn" aria-label="Send question" disabled>{{icon:send}}</button>
           </form>
+          <p class="chat-input-hint">Enter to send · Shift + Enter for a new line</p>
+        </div>
+      </section>
 
-          <div class="ai-thinking" id="aiThinking" hidden aria-live="polite">
-            <span class="thinking-dot"></span>
-            <span class="thinking-dot"></span>
-            <span class="thinking-dot"></span>
-            <span>AI is thinking…</span>
+      <!-- ===================== SETTINGS ===================== -->
+      <section class="view" id="view-settings" data-view="settings" aria-labelledby="topbarTitle">
+        <div class="card settings-card">
+          <h2>Backend connection</h2>
+          <p class="settings-card__desc">Point Lumen at your FastAPI backend. Endpoints used: <code>POST /process</code>, <code>POST /ask</code>, <code>GET /health</code>.</p>
+          <label class="field-label" for="apiBaseInput">API base URL</label>
+          <div class="field-row">
+            <input type="text" id="apiBaseInput" class="text-input" placeholder="http://localhost:8000" />
+            <button class="btn btn--primary" id="saveApiBaseBtn">Save</button>
           </div>
-
-          <div class="answer-card" id="answerCard" hidden>
-            <div class="card-header">
-              <h4>AI answer</h4>
-              <button type="button" class="icon-btn copy-btn" data-copy-target="answerText" aria-label="Copy answer">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/></svg>
-                <span>Copy answer</span>
-              </button>
-            </div>
-            <p id="answerText"></p>
+          <div class="health-row">
+            <button class="btn btn--outline" id="checkHealthBtn">{{icon:refresh}} Check connection</button>
+            <span class="health-status" id="healthStatus">
+              <span class="health-status__dot" id="healthStatusDot"></span>
+              <span id="healthStatusText">Not checked</span>
+            </span>
           </div>
         </div>
 
-        <!-- Transcript -->
-        <div class="card transcript-card">
-          <div class="card-header">
-            <h3>Transcript</h3>
-            <div class="transcript-actions">
-              <button type="button" class="icon-btn copy-btn" data-copy-target="transcriptText" aria-label="Copy transcript">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/></svg>
-                <span>Copy transcript</span>
-              </button>
-              <button type="button" class="icon-btn transcript-toggle" id="transcriptToggle" aria-expanded="false" aria-controls="transcriptBody">
-                <span>Show</span>
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-            </div>
-          </div>
-          <div class="transcript-body" id="transcriptBody" hidden>
-            <p id="transcriptText"></p>
-          </div>
+        <div class="card settings-card">
+          <h2>How processing works</h2>
+          <p class="settings-card__desc">Each video is processed once and kept on the server under a session ID. Summary, key points, questions, transcript, and chat all come from that single pass — switching tabs doesn't reprocess the video.</p>
         </div>
 
-      </div>
-    </section>
-  </main>
+        <div class="card settings-card">
+          <h2>Lesson data</h2>
+          <p class="settings-card__desc">Clear the transcript, summary, key points, and chat history currently loaded in this browser.</p>
+          <button class="btn btn--danger-outline" id="clearLessonBtn">{{icon:trash}} Clear current lesson</button>
+        </div>
+      </section>
 
-  <footer class="site-footer">
-    <span class="brand-mark" aria-hidden="true">◉</span>
-    <span>VideoMind — AI video intelligence</span>
-  </footer>
+    </main>
+  </div>
+</div>
 
-  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+<!-- Toast container -->
+<div class="toast-stack" id="toastStack" aria-live="assertive"></div>
 
-  <script src="/static/interact.js"></script>
+<script src="/static/interact.js"></script>
 </body>
 </html>

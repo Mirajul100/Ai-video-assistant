@@ -67,6 +67,12 @@ if STATIC_DIR.exists():
 
 sessions: dict[str, dict] = {}
 
+# Sessions live only in memory and are never explicitly cleaned up elsewhere,
+# so on a long-running server they'd otherwise grow forever. Once the cap is
+# hit, the oldest session is evicted to make room for the new one (dicts keep
+# insertion order in Python 3.7+, so the first key is the oldest).
+MAX_SESSIONS = 50
+
 
 class ProcessRequest(BaseModel):
     url: str
@@ -317,6 +323,11 @@ def process_video(
             "reg_chain": reg_chain,
             "transcript": transcript_text,
         }
+
+        if len(sessions) > MAX_SESSIONS:
+            oldest_id = next(iter(sessions))
+            sessions.pop(oldest_id, None)
+            logger.info("Session cap reached, evicted oldest session: %s", oldest_id)
 
         logger.info(
             "Video processing completed successfully. Session: %s",
