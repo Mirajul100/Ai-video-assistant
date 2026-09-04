@@ -29,7 +29,6 @@
   ----------------------------------------------------------------- */
   const ICONS = {
     grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',
-    upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4.5 15v3a2.5 2.5 0 0 0 2.5 2.5h10a2.5 2.5 0 0 0 2.5-2.5v-3"/></svg>',
     doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h8l4 4v13a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1Z"/><path d="M14 3.5v4h4"/><path d="M8.5 12.5h7M8.5 15.75h7M8.5 9.25h3"/></svg>',
     layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 3.5 8.25 12 13l8.5-4.75Z"/><path d="m3.5 12 8.5 4.75L20.5 12"/><path d="m3.5 15.75 8.5 4.75 8.5-4.75"/></svg>',
     star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14.7 9l6.1.9-4.4 4.3 1 6.1L12 17.3 6.6 20.3l1-6.1L3.2 9.9l6.1-.9Z"/></svg>',
@@ -46,7 +45,6 @@
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4.5 4.5L19 8"/></svg>',
     alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21.5 20.5H2.5Z"/><path d="M12 10v4.2"/><circle cx="12" cy="17.3" r="0.15" fill="currentColor" stroke-width="1"/></svg>',
     video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="6" width="12" height="12" rx="1.5"/><path d="M15.5 10.5 20.5 7v10l-5-3.5"/></svg>',
-    mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3.5" width="6" height="10.5" rx="3"/><path d="M6 11.5a6 6 0 0 0 12 0"/><path d="M12 17.5V20.5M9 20.5h6"/></svg>',
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7.5h14"/><path d="M9.5 7.5V5.8a1.3 1.3 0 0 1 1.3-1.3h2.4a1.3 1.3 0 0 1 1.3 1.3v1.7"/><path d="M7 7.5 7.8 19a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4l0.8-11.5"/><path d="M10.3 11v6M13.7 11v6"/></svg>',
     refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5"/><path d="M17.5 3.5v3.5H14M6.5 20.5V17H10"/></svg>',
     logout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h3"/><path d="M15 8l4.5 4-4.5 4"/><path d="M19 12H9"/></svg>',
@@ -203,7 +201,7 @@
   ----------------------------------------------------------------- */
   const VIEW_TITLES = {
     dashboard: "Dashboard",
-    upload: "Upload Lesson",
+    upload: "Add Video",
     transcript: "Transcript",
     summary: "Summary",
     keypoints: "Key Points",
@@ -226,7 +224,7 @@
     $("#topbarTitle").textContent = VIEW_TITLES[viewName];
     closeSidebarMobile();
     closeDropdowns();
-    $("#main-content").scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+    $("#main-content").scrollTo({ top: 0 });
 
     if (viewName === "ask-ai") {
       $("#chatUnreadDot").hidden = true;
@@ -368,6 +366,13 @@
       return;
     }
 
+    if (state.processing.active) {
+      // Already processing this link -- just redirect where we'll land once
+      // it finishes instead of firing a second, duplicate request.
+      state.pendingTargetView = targetView;
+      return;
+    }
+
     state.pendingTargetView = targetView;
     beginProcessing(url);
   }
@@ -493,6 +498,7 @@
       showToast("Lesson processed successfully.", "success");
 
       await new Promise((r) => setTimeout(r, 450));
+      $("#processingCard").hidden = true;
       setActiveView(state.pendingTargetView || "dashboard");
       state.pendingTargetView = null;
     } catch (err) {
@@ -632,11 +638,17 @@
     $("#dashboardLessonState").hidden = false;
 
     $("#overviewTitle").textContent = lesson.title;
-    $("#overviewThumb").src = lesson.videoId
-      ? `https://img.youtube.com/vi/${lesson.videoId}/hqdefault.jpg`
-      : "";
-    $("#overviewThumb").alt = lesson.title;
+    const thumbEl = $("#overviewThumb");
+    if (lesson.videoId) {
+      thumbEl.hidden = false;
+      thumbEl.src = `https://img.youtube.com/vi/${lesson.videoId}/hqdefault.jpg`;
+      thumbEl.alt = lesson.title;
+    } else {
+      thumbEl.hidden = true;
+      thumbEl.removeAttribute("src");
+    }
     $("#overviewSourceLink").href = lesson.sourceUrl || "#";
+    $("#overviewSourceLabel").textContent = lesson.sourceUrl ? "Watch on YouTube" : "Sample lesson (demo)";
     $("#overviewWordCount").textContent = lesson.wordCount.toLocaleString();
     $("#overviewKeypointCount").textContent = String(lesson.keyPoints.length);
     $("#overviewProcessedAt").textContent = lesson.processedAt.toLocaleString(undefined, {
@@ -1091,12 +1103,9 @@
       ],
     };
 
-    const demoUrl = "https://www.youtube.com/watch?v=DKSZHN7jftI";
+    const demoUrl = null; // no real source video -- keep the demo honest
     state.isDemo = true;
-    applyLessonData(
-      { ...demo, key_points: demo.key_points, questions: demo.questions, session_id: null },
-      demoUrl
-    );
+    applyLessonData({ ...demo, session_id: null }, demoUrl);
     updateSidebarChip("ready", demo.title + " (demo)");
     pushNotification(`"${demo.title}" sample lesson loaded.`);
     showToast("Sample lesson loaded — this is demo data, not a real video.", "info");
@@ -1105,6 +1114,17 @@
 
   function initDemo() {
     $("#heroDemoBtn").addEventListener("click", loadDemoLesson);
+  }
+
+  // Guards the "Watch on YouTube" link on the dashboard overview card so it
+  // never navigates to "#" for the demo lesson, which has no real source.
+  function initOverviewSourceLink() {
+    $("#overviewSourceLink").addEventListener("click", (e) => {
+      if (!state.lesson || !state.lesson.sourceUrl) {
+        e.preventDefault();
+        showToast("This is a sample lesson — there's no real source video.", "info");
+      }
+    });
   }
 
   /* -----------------------------------------------------------------
@@ -1119,6 +1139,7 @@
     initChat();
     initSettings();
     initDemo();
+    initOverviewSourceLink();
     renderNotifications();
     setActiveView("dashboard");
   }
