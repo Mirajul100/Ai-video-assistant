@@ -31,7 +31,7 @@
         ? `<span class="message__avatar">You</span>`
         : `<span class="message__avatar">${ICONS.sparkle}</span>`;
 
-    const bodyId = `msg-${Date.now()}-${Math.random().toString(300).slice(2, 7)}`;
+    const bodyId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     wrap.innerHTML = `
       ${avatar}
       <div class="message__body">

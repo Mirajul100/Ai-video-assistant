@@ -36,14 +36,14 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 
-logger = logging.getLogger("videomind")
+logger = logging.getLogger("Lumen.ai")
 
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 DOWNLOADS_DIR = BASE_DIR / "downloads"
 
 app = FastAPI(
-    title="VideoMind API",
+    title="Lumen.ai API",
     description="AI Video Assistant API",
     version="1.0.0",
 )
@@ -198,7 +198,7 @@ async def serve_frontend():
 def health():
     return {
         "status": "healthy",
-        "service": "VideoMind API",
+        "service": "Lumen.ai API",
     }
 
 
