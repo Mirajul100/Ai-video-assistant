@@ -81,6 +81,7 @@ def load_reg_chain():
             - If the transcript does not provide enough context to understand what the user is asking, say:
             "The lesson transcript does not provide enough information to answer this question."
             - Do not answer completely unrelated questions.
+            - Create a small memory of your previous chat from topic.
 
             Lesson transcript:
             {context}

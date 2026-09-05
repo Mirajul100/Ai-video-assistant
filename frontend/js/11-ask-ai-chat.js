@@ -32,12 +32,15 @@
         : `<span class="message__avatar">${ICONS.sparkle}</span>`;
 
     const bodyId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    
+    // FIX: Added type="button" to the copy button to prevent form submission behavior
     wrap.innerHTML = `
       ${avatar}
       <div class="message__body">
         <div class="message__bubble" id="${bodyId}"></div>
-        ${role === "ai" ? `<div class="message__actions"><button class="message__copy-btn" data-target="${bodyId}">${ICONS.copy} Copy</button></div>` : ""}
+        ${role === "ai" ? `<div class="message__actions"><button type="button" class="message__copy-btn" data-target="${bodyId}">${ICONS.copy} Copy</button></div>` : ""}
       </div>`;
+      
     // set text via textContent to avoid HTML injection, preserving line breaks via CSS white-space
     wrap.querySelector(`#${bodyId}`).textContent = text;
 
@@ -46,6 +49,7 @@
 
     if (role === "ai") {
       wrap.querySelector(".message__copy-btn").addEventListener("click", async (e) => {
+        e.preventDefault();
         await copyToClipboard(text);
         showToast("Answer copied.", "success");
       });
@@ -64,6 +68,7 @@
     $("#chatMessages").appendChild(wrap);
     $("#chatMessages").scrollTo({ top: $("#chatMessages").scrollHeight, behavior: "smooth" });
   }
+  
   function hideTypingIndicator() {
     const el = $("#typingIndicatorMsg");
     if (el) el.remove();

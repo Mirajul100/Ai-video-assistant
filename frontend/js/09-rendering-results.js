@@ -158,10 +158,12 @@
     $("#questionsIntro").hidden = false;
     const list = $("#questionsList");
     list.hidden = false;
+    
+    // FIX 1: Add type="button" and use data-index instead of embedding full text strings
     list.innerHTML = lesson.questions
       .map(
-        (q) => `<li>
-          <button class="question-item" data-question="${escapeHtml(q)}">
+        (q, idx) => `<li>
+          <button type="button" class="question-item" data-index="${idx}">
             <span class="question-item__icon">${ICONS.question}</span>
             <span class="question-item__text">${escapeHtml(q)}</span>
             <span class="question-item__go">${ICONS.chevron}</span>
@@ -170,10 +172,15 @@
       )
       .join("");
 
-    $all(".question-item", list).forEach((btn) => {
-      btn.addEventListener("click", () => {
+    // FIX 2: Explicitly scope the querySelectorAll to the list element
+    list.querySelectorAll(".question-item").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault(); // FIX 3: Stop any default form submission behaviors
         setActiveView("ask-ai");
-        setTimeout(() => sendChatMessage(btn.dataset.question), 150);
+        
+        // Retrieve the exact string from the array using the index
+        const questionText = lesson.questions[btn.dataset.index];
+        setTimeout(() => sendChatMessage(questionText), 150);
       });
     });
   }
