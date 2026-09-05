@@ -33,6 +33,7 @@ def build_reg_chain(transcripts: str):
             - If the transcript does not provide enough context to understand what the user is asking, say:
             "The lesson transcript does not provide enough information to answer this question."
             - Do not answer completely unrelated questions.
+            - Create a small memory of your current chat from transcribe.
 
             Lesson transcript:
             {context}
@@ -81,7 +82,7 @@ def load_reg_chain():
             - If the transcript does not provide enough context to understand what the user is asking, say:
             "The lesson transcript does not provide enough information to answer this question."
             - Do not answer completely unrelated questions.
-            - Create a small memory of your previous chat from topic.
+            - Create a small memory of your current chat from transcribe.
 
             Lesson transcript:
             {context}
