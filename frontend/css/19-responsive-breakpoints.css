@@ -1,0 +1,76 @@
+/* LUMEN — AI Lesson Assistant */
+/* Section 19: RESPONSIVE BREAKPOINTS */
+
+/* ---------------------------------------------------------------------
+   19. RESPONSIVE BREAKPOINTS
+--------------------------------------------------------------------- */
+
+/* Tablet */
+@media (max-width: 1080px) {
+  :root { --sidebar-w: 220px; }
+  .main-content { padding: 24px 24px 56px; }
+  .topbar { padding: 0 24px; }
+  .hero { grid-template-columns: 1fr; }
+  .hero__visual { order: -1; max-width: 320px; margin: 0 auto; }
+  .pipeline-strip { grid-template-columns: repeat(2, 1fr); }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .quicklink-grid { grid-template-columns: repeat(2, 1fr); }
+  .keypoints-grid { grid-template-columns: 1fr; }
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  :root { --topbar-h: 60px; }
+
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--dur-med) var(--ease);
+    width: min(280px, 82vw);
+    box-shadow: var(--shadow-pop);
+  }
+  .sidebar.is-open { transform: translateX(0); }
+  .sidebar-backdrop[data-open="true"] { display: block; }
+
+  .main-column { margin-left: 0; }
+  .topbar { padding: 0 16px; }
+  .topbar__menu-btn { display: inline-flex; }
+  .topbar__title { font-size: 16px; }
+  .main-content { padding: 18px 16px 48px; }
+
+  .hero { padding: 16px 4px 8px; gap: 22px; }
+  .hero__actions { flex-direction: column; align-items: stretch; }
+  .hero__actions .btn { width: 100%; }
+  .hero__visual { max-width: 260px; }
+
+  .pipeline-strip { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .quicklink-grid { grid-template-columns: 1fr; }
+  .keypoints-grid { grid-template-columns: 1fr; }
+
+  .lesson-overview__top { flex-direction: column; }
+  .lesson-overview__top .btn { width: 100%; }
+
+  .card { padding: 20px 18px; }
+
+  .dropzone { padding: 40px 16px; }
+  .dropzone__actions { flex-direction: column; width: 100%; }
+  .dropzone__actions .btn { width: 100%; }
+
+  .transcript-toolbar { flex-direction: column; align-items: stretch; }
+  .transcript-toolbar .btn { width: 100%; }
+
+  .chat-shell { height: calc(100vh - var(--topbar-h) - 90px); border-radius: var(--r-md); }
+  .chat-shell__header { padding: 16px 18px; flex-direction: column; align-items: stretch; }
+  .chat-messages { padding: 16px 18px; }
+  .chat-input-bar { padding: 12px 14px 4px; }
+  .message { max-width: 92%; }
+
+  .dropdown-panel { position: fixed; top: var(--topbar-h); right: 12px; left: 12px; width: auto; }
+
+  .field-row { flex-direction: column; }
+  .field-row .btn { width: 100%; }
+}
+
+@media (max-width: 400px) {
+  .hero__title { font-size: 26px; }
+}

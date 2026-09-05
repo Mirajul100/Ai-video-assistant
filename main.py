@@ -194,7 +194,6 @@ async def serve_frontend():
 
     return FileResponse(index_file)
 
-
 @app.get("/health")
 def health():
     return {

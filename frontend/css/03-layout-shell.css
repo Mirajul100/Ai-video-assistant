@@ -1,0 +1,50 @@
+/* LUMEN — AI Lesson Assistant */
+/* Section 3: LAYOUT SHELL */
+
+/* ---------------------------------------------------------------------
+   3. LAYOUT SHELL
+--------------------------------------------------------------------- */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-column {
+  flex: 1;
+  min-width: 0;
+  margin-left: var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding: 28px 36px 64px;
+  max-width: 1180px;
+  width: 100%;
+}
+
+.skip-link {
+  position: fixed;
+  top: -60px;
+  left: 12px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 10px 16px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  z-index: 999;
+  transition: top var(--dur-fast) var(--ease);
+}
+.skip-link:focus {
+  top: 12px;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 5, 8, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 40;
+}

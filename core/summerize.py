@@ -3,24 +3,20 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.runnables import RunnablePassthrough , RunnableLambda
 from dotenv import load_dotenv
 import os
-
-from openai.resources import Chat
+import time
 
 load_dotenv()
 
-#Load environment variables from .env file
 def get_llm():
     return ChatGoogleGenerativeAI(
-        model=os.getenv("GEMINI_MODEL2"),
+        model=os.getenv("GEMINI_MODEL1", "gemini-3.1-flash-lite"),
         api_key=os.getenv("GEMINI_API_KEY"),
         temperature=0.3,
     )
-    
-#Split the transcript into smaller chunks for better processing
-def  split_transcript(transcript: str) -> list:
+
+def split_transcript(transcript: str) -> list:
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=3000,
         chunk_overlap=200,
@@ -31,36 +27,121 @@ def  split_transcript(transcript: str) -> list:
 def summarize_transcript(transcript: str) -> str:
     llm = get_llm()
 
-    #Create a prompt for summarizing each chunk of the transcript
     map_prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful assistant that summarizes transcripts."),
-        ("human", "Summarize the following transcript in a concise manner:\n{text}")
-    ])
-    
-    map_chain = map_prompt | llm | StrOutputParser()
-    chunks = split_transcript(transcript)
-    chunk_summaries = [map_chain.invoke({"text": chunk}) for chunk in chunks]
-    combined_summary = "\n\n".join(chunk_summaries)
-    combined_prompt = ChatPromptTemplate.from_messages([
-        ("system", "You summarize transcripts in simple, clear English."),
-        ("human", "Summarize the following transcript using simple English. Include only the key points:\n{text}")
-    ])
-    
-    combined_chain = (
-        RunnablePassthrough() | RunnableLambda(lambda x:{"text": x}) | combined_prompt | llm | StrOutputParser()
-    )
-    
-    return combined_chain.invoke(combined_summary)
+        (
+            "system",
+            """
+            You are a helpful AI assistant that summarizes transcripts.
+            Rules:
+            - Use only the information provided in the transcript.
+            - Do not invent information.
+            - Keep important facts and explanations.
+            - Use simple and clear English.
+            - Remove unnecessary repetition.
+            """
+        ),
+        (
+            "human",
+            """
+            Summarize the following transcript section concisely:
 
+            {text}
+            """
+        )
+    ])
+
+    map_chain = map_prompt | llm | StrOutputParser()
+
+    chunks = split_transcript(transcript)
+    chunk_summaries = []
+
+    for index, chunk in enumerate(chunks, start=1):
+        try:
+            summary = map_chain.invoke({
+                "text": chunk
+            })
+
+            chunk_summaries.append(summary)
+            time.sleep(1)
+
+        except Exception as e:
+            print(
+                f"Failed to summarize chunk "
+                f"{index}/{len(chunks)}: {e}"
+            )
+
+    if not chunk_summaries:
+        raise RuntimeError(
+            "No transcript chunks were successfully summarized."
+        )
+
+    combined_summary = "\n\n".join(chunk_summaries)
+
+    combined_prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            """
+            You are an AI lesson assistant.
+            Create a final summary using only the provided information.
+            Rules:
+            - Use simple and clear English.
+            - Include only important points.
+            - Remove repeated information.
+            - Do not invent information.
+            - Keep important facts and explanations.
+            """
+                    ),
+                    (
+                        "human",
+                        """
+            Create the final summary from the following section summaries:
+
+            {text}
+            """
+        )
+    ])
+
+    combined_chain = combined_prompt | llm | StrOutputParser()
+
+    print("Generating final summary...")
+
+    final_summary = combined_chain.invoke({
+        "text": combined_summary
+    })
+
+    return final_summary.strip()
 
 def generate_title(transcript: str) -> str:
     llm = get_llm()
 
-    title_chain = (
-        RunnablePassthrough() | RunnableLambda(lambda x:{"text": x}) | ChatPromptTemplate.from_messages([
-            ("system", "You generate short, accurate titles for transcripts."),
-            ("human", "Generate one concise title that best represents the transcript. Do not add information not present in the transcript:\n{text}")  
-        ]) | llm | StrOutputParser()
-    )
-    
-    return title_chain.invoke(transcript[:2000])  # Use only the first 2000 characters for title generation
+    title_prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            """
+            You generate short and accurate titles for transcripts.
+            """
+                    ),
+                    (
+                        "human",
+                        """
+            Generate one concise title that best represents the transcript.
+
+            Rules:
+            - Return only the title.
+            - Do not add information not present in the transcript.
+            - Keep the title short and clear.
+
+            Transcript:
+
+            {text}
+            """
+        )
+    ])
+
+    title_chain = title_prompt | llm | StrOutputParser()
+
+    title = title_chain.invoke({
+        "text": transcript[:2000]
+    })
+
+    return title.strip()

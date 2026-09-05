@@ -1,0 +1,112 @@
+/* LUMEN — AI Lesson Assistant */
+/* Section 6: BUTTONS & FORM CONTROLS */
+
+/* ---------------------------------------------------------------------
+   6. BUTTONS & FORM CONTROLS
+--------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--r-sm);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  border: 1px solid transparent;
+}
+.btn svg { width: 16px; height: 16px; }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn--primary {
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+  color: var(--accent-ink);
+  box-shadow: 0 8px 20px -10px rgba(232, 162, 60, 0.55);
+}
+.btn--primary:hover { box-shadow: 0 10px 24px -8px rgba(232, 162, 60, 0.65); }
+
+.btn--secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn--secondary:hover { background: var(--surface-hover); }
+
+.btn--outline {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn--outline:hover { background: var(--surface); border-color: var(--text-faint); }
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 8px 12px;
+}
+.btn--ghost:hover { background: var(--surface); color: var(--text); }
+
+.btn--danger-outline {
+  background: transparent;
+  color: var(--error);
+  border-color: rgba(242, 109, 109, 0.35);
+}
+.btn--danger-outline:hover { background: var(--error-soft); }
+
+.btn-text {
+  align-self: flex-start;
+  color: var(--accent-strong);
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+}
+.btn-text:hover { border-color: var(--accent-strong); }
+
+.text-link {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.text-link:hover { color: var(--text); }
+
+.text-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-solid);
+  color: var(--text);
+  font-size: 14px;
+  transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.text-input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.field-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 14px 0 8px;
+}
+
+.field-row { display: flex; gap: 10px; }
+.field-row .text-input { flex: 1; }
+
+/* generic focus ring for interactive non-btn elements */
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}

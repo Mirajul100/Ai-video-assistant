@@ -1,0 +1,38 @@
+/* LUMEN — AI Lesson Assistant */
+/* Section 7: CARDS & SHARED PRIMITIVES */
+
+/* ---------------------------------------------------------------------
+   7. CARDS & SHARED PRIMITIVES
+--------------------------------------------------------------------- */
+.card {
+  background: linear-gradient(180deg, var(--surface), rgba(255, 255, 255, 0.015));
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 26px 28px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(6px);
+}
+
+.view { display: none; }
+.view.is-active { display: block; animation: view-fade-in var(--dur-med) var(--ease); }
+
+.view-intro {
+  color: var(--text-muted);
+  font-size: 13.5px;
+  margin-bottom: 14px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.status-badge.is-processing { background: var(--warning-soft); color: var(--warning); }
+.status-badge.is-error { background: var(--error-soft); color: var(--error); }

@@ -1,0 +1,31 @@
+/* LUMEN — AI Lesson Assistant */
+/* Section 11: SUMMARY */
+
+/* ---------------------------------------------------------------------
+   11. SUMMARY
+--------------------------------------------------------------------- */
+.summary-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.summary-card__header h2 { font-size: 19px; }
+.summary-card__actions { display: flex; gap: 8px; }
+.summary-card__text {
+  font-size: 15.5px;
+  line-height: 1.85;
+  color: var(--text);
+  max-width: 76ch;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-line;
+}
+.summary-card.is-expanded .summary-card__text {
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}

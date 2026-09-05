@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css" />
+<link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
 
@@ -140,7 +140,7 @@
               <h2 class="hero__title">Learn Smarter with AI</h2>
               <p class="hero__subtitle">Paste a YouTube lesson link and turn it into a clear transcript, summary, key points, and interactive Q&amp;A.</p>
               <div class="hero__actions">
-                <button class="btn btn--primary" id="heroAddVideoBtn">{{icon:video}} Add a YouTube video</button>
+                <button class="btn btn--primary" id="heroAddVideoBtn" >{{icon:video}} Add a YouTube video</button>
               </div>
               <button class="btn-text" id="heroDemoBtn">Or try a sample lesson →</button>
             </div>
@@ -473,6 +473,19 @@
 <!-- Toast container -->
 <div class="toast-stack" id="toastStack" aria-live="assertive"></div>
 
-<script src="/static/script.js"></script>
+<script src="/static/js/01-icon-system.js"></script>
+<script src="/static/js/02-config-state.js"></script>
+<script src="/static/js/03-utilities.js"></script>
+<script src="/static/js/04-toasts-notifications.js"></script>
+<script src="/static/js/05-navigation.js"></script>
+<script src="/static/js/06-dropdowns.js"></script>
+<script src="/static/js/07-youtube-url-input.js"></script>
+<script src="/static/js/08-processing-pipeline.js"></script>
+<script src="/static/js/09-rendering-results.js"></script>
+<script src="/static/js/10-transcript-search.js"></script>
+<script src="/static/js/11-ask-ai-chat.js"></script>
+<script src="/static/js/12-settings.js"></script>
+<script src="/static/js/13-demo-lesson.js"></script>
+<script src="/static/js/14-init.js"></script>
 </body>
 </html>

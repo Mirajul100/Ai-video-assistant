@@ -1,0 +1,22 @@
+/* LUMEN — AI Lesson Assistant */
+/* Section 15: SETTINGS */
+
+/* ---------------------------------------------------------------------
+   15. SETTINGS
+--------------------------------------------------------------------- */
+.settings-card { margin-bottom: 18px; }
+.settings-card h2 { font-size: 16px; margin-bottom: 8px; }
+.settings-card__desc { color: var(--text-muted); font-size: 13.5px; line-height: 1.6; margin-bottom: 4px; }
+
+.health-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.health-status { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+.health-status__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); }
+.health-status__dot.is-online { background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+.health-status__dot.is-offline { background: var(--error); box-shadow: 0 0 0 3px var(--error-soft); }
+.health-status__dot.is-checking { background: var(--warning); animation: pulse-dot 1s ease-in-out infinite; }

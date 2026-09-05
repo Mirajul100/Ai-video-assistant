@@ -1,0 +1,34 @@
+/* LUMEN — AI Lesson Assistant */
+/* Section 16: EMPTY / SKELETON / ERROR STATES */
+
+/* ---------------------------------------------------------------------
+   16. EMPTY / SKELETON / ERROR STATES
+--------------------------------------------------------------------- */
+.empty-state {
+  text-align: center;
+  padding: 80px 24px;
+  color: var(--text-muted);
+}
+.empty-state__icon {
+  width: 54px; height: 54px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-faint);
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+}
+.empty-state__icon svg { width: 24px; height: 24px; }
+.empty-state h2 { font-size: 17px; color: var(--text); margin-bottom: 8px; }
+.empty-state p { font-size: 14px; margin-bottom: 22px; }
+
+.skeleton {
+  background: linear-gradient(100deg, var(--surface) 30%, var(--surface-hover) 50%, var(--surface) 70%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--r-sm);
+}
+.skeleton--line { height: 14px; margin-bottom: 12px; }
+.skeleton--block { height: 220px; border-radius: var(--r-lg); }
+.skeleton--card { height: 150px; border-radius: var(--r-lg); }
+.w-30 { width: 30%; } .w-40 { width: 40%; } .w-70 { width: 70%; } .w-80 { width: 80%; } .w-90 { width: 90%; } .w-100 { width: 100%; }

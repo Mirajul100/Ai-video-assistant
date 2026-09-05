@@ -1,0 +1,37 @@
+/* LUMEN — AI Lesson Assistant */
+/* Section 13: QUESTIONS */
+
+/* ---------------------------------------------------------------------
+   13. QUESTIONS
+--------------------------------------------------------------------- */
+.questions-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.question-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 14.5px;
+  transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.question-item:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  transform: translateX(3px);
+}
+.question-item__icon {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--accent-ai-soft);
+  color: var(--accent-ai);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.question-item__icon svg { width: 15px; height: 15px; }
+.question-item__text { flex: 1; }
+.question-item__go { color: var(--text-faint); width: 16px; height: 16px; flex-shrink: 0; }
+.question-item__go svg { width: 16px; height: 16px; }

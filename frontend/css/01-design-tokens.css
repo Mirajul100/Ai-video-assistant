@@ -1,0 +1,66 @@
+/* LUMEN — AI Lesson Assistant */
+/* Section 1: DESIGN TOKENS */
+
+/* ---------------------------------------------------------------------
+   1. DESIGN TOKENS
+--------------------------------------------------------------------- */
+:root {
+  /* Surfaces */
+  --bg: #0a0d13;
+  --bg-elevated: #0e121a;
+  --sidebar-bg: #0c0f16;
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-hover: rgba(255, 255, 255, 0.065);
+  --surface-solid: #12161f;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Text */
+  --text: #eceef4;
+  --text-muted: #8991a6;
+  --text-faint: #5b6376;
+
+  /* Brand accent — warm amber, evokes highlighting a lesson */
+  --accent: #e8a23c;
+  --accent-strong: #f0b65c;
+  --accent-soft: rgba(232, 162, 60, 0.14);
+  --accent-ink: #201404;
+
+  /* Secondary accent — used for AI / assistant moments */
+  --accent-ai: #45d6c4;
+  --accent-ai-soft: rgba(69, 214, 196, 0.14);
+
+  /* Semantic */
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.14);
+  --error: #f26d6d;
+  --error-soft: rgba(242, 109, 109, 0.13);
+  --warning: #f2b84b;
+  --warning-soft: rgba(242, 184, 75, 0.14);
+
+  /* Radii */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.3), 0 16px 32px -18px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 12px 40px -12px rgba(0, 0, 0, 0.55);
+
+  /* Type */
+  --font-display: "Sora", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+
+  /* Layout */
+  --sidebar-w: 264px;
+  --topbar-h: 68px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur-med: 260ms;
+}

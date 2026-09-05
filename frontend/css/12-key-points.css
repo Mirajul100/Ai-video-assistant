@@ -1,0 +1,38 @@
+/* LUMEN — AI Lesson Assistant */
+/* Section 12: KEY POINTS */
+
+/* ---------------------------------------------------------------------
+   12. KEY POINTS
+--------------------------------------------------------------------- */
+.keypoints-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.keypoints-grid {
+    display: none;
+}
+
+.keypoints-grid.active {
+    display: grid;
+}
+.keypoint-card {
+  padding: 24px 24px 22px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: transform var(--dur-med) var(--ease), border-color var(--dur-med) var(--ease);
+}
+.keypoint-card:hover { transform: translateY(-3px); border-color: var(--border-strong); }
+.keypoint-card__index {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--accent-soft);
+  -webkit-text-stroke: 1px var(--accent);
+  margin-bottom: 10px;
+  display: block;
+}
+.keypoint-card__title { font-size: 16px; margin-bottom: 8px; }
+.keypoint-card__desc { color: var(--text-muted); font-size: 13.75px; line-height: 1.65; }
