@@ -5,9 +5,9 @@ from pydub import AudioSegment
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-# Download audio from YouTube and convert it to WAV format
 def download_audio_from_youtube(url: str) -> str:
-    ydl_opts = {
+    # First try without cookies
+    ydl_opts_without_cookies = {
         'format': 'bestaudio/best',
         'outtmpl': os.path.join(DOWNLOAD_DIR, 'audio_%(id)s.%(ext)s'),
         'postprocessors': [{
@@ -15,14 +15,34 @@ def download_audio_from_youtube(url: str) -> str:
             'preferredcodec': 'wav',
             'preferredquality': '192',
         }],
-        
-        "quiet": True,
+        'quiet': True,
     }
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=True)
-        audio_file_path = ydl.prepare_filename(info_dict).replace('.webm', '.wav').replace('.m4a', '.wav').replace('.mp3', '.wav')
-        return audio_file_path
+    
+    # Then try with cookies if needed
+    ydl_opts_with_cookies = {
+        **ydl_opts_without_cookies,
+        'cookiesfrombrowser': ('chrome',),
+    }
+    
+    # Try without cookies first
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts_without_cookies) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            audio_file_path = ydl.prepare_filename(info_dict).replace('.webm', '.wav').replace('.m4a', '.wav').replace('.mp3', '.wav')
+            return audio_file_path
+    except Exception as e:
+        print(f"Download without cookies failed: {e}")
+        print("Trying with Chrome cookies...")
+        
+        # Try with cookies
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts_with_cookies) as ydl:
+                info_dict = ydl.extract_info(url, download=True)
+                audio_file_path = ydl.prepare_filename(info_dict).replace('.webm', '.wav').replace('.m4a', '.wav').replace('.mp3', '.wav')
+                return audio_file_path
+        except Exception as e:
+            print(f"Download with cookies also failed: {e}")
+            raise
 
 # Convert audio file to WAV format with mono channel and 16kHz sample rate
 def convert_audio_to_wav(input_file: str) -> str:
