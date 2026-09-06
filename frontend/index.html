@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Lumen — AI Video Lesson Assistant</title>
-<meta name="description" content="Paste a YouTube lesson link and get a transcript, summary, key points, and interactive Q&A." />
+<title>Lumen — AI Video & Document Assistant</title>
+<meta name="description" content="Paste a YouTube lesson link or upload a document to get a transcript, summary, key points, and interactive Q&A." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -45,7 +45,7 @@
           <span class="nav-item__icon">{{icon:grid}}</span><span class="nav-item__label">Dashboard</span>
         </button></li>
         <li><button class="nav-item" data-view="upload">
-          <span class="nav-item__icon">{{icon:video}}</span><span class="nav-item__label">Add Video</span>
+          <span class="nav-item__icon">{{icon:pdfvideo}}</span><span class="nav-item__label">Add Video/Document</span>
         </button></li>
         <li><button class="nav-item" data-view="transcript">
           <span class="nav-item__icon">{{icon:doc}}</span><span class="nav-item__label">Transcript</span>
@@ -72,7 +72,7 @@
     <div class="sidebar__footer">
       <div class="lesson-chip" id="sidebarLessonChip" hidden>
         <span class="lesson-chip__dot" id="sidebarStatusDot"></span>
-        <span class="lesson-chip__text" id="sidebarLessonName">No lesson loaded</span>
+        <span class="lesson-chip__text" id="sidebarLessonName">No content loaded</span>
       </div>
     </div>
   </aside>
@@ -136,11 +136,11 @@
         <div id="dashboardEmptyState">
           <div class="hero">
             <div class="hero__copy">
-              <p class="hero__eyebrow">AI Video Lesson Assistant</p>
+              <p class="hero__eyebrow">AI Content Assistant</p>
               <h2 class="hero__title">Learn Smarter with AI</h2>
-              <p class="hero__subtitle">Paste a YouTube lesson link and turn it into a clear transcript, summary, key points, and interactive Q&amp;A.</p>
+              <p class="hero__subtitle">Paste a YouTube lesson link or upload a document to turn it into a clear transcript, summary, key points, and interactive Q&amp;A.</p>
               <div class="hero__actions">
-                <button class="btn btn--primary" id="heroAddVideoBtn" >{{icon:video}} Add a YouTube video</button>
+                <button class="btn btn--primary" id="heroAddVideoBtn" >{{icon:video}} Add content</button>
               </div>
               <button class="btn-text" id="heroDemoBtn">Or try a sample lesson →</button>
             </div>
@@ -160,13 +160,13 @@
           <div class="pipeline-strip">
             <div class="pipeline-card">
               <span class="pipeline-card__icon">{{icon:doc}}</span>
-              <h3>Transcribe</h3>
-              <p>Every word turned into an accurate English transcript.</p>
+              <h3>Transcribe & Read</h3>
+              <p>Every word turned into an accurate English transcript or parsed text.</p>
             </div>
             <div class="pipeline-card">
               <span class="pipeline-card__icon">{{icon:layers}}</span>
               <h3>Summarize</h3>
-              <p>A clear summary of what the video actually teaches.</p>
+              <p>A clear summary of what the video or document actually teaches.</p>
             </div>
             <div class="pipeline-card">
               <span class="pipeline-card__icon">{{icon:star}}</span>
@@ -176,7 +176,7 @@
             <div class="pipeline-card">
               <span class="pipeline-card__icon">{{icon:chat}}</span>
               <h3>Ask anything</h3>
-              <p>Get answers straight from the video's own words.</p>
+              <p>Get answers straight from the source's own words.</p>
             </div>
           </div>
         </div>
@@ -192,7 +192,7 @@
                   <h2 class="lesson-overview__title" id="overviewTitle">Lesson title</h2>
                 </div>
               </div>
-              <button class="btn btn--outline" id="newLessonBtn">{{icon:video}} Process another video</button>
+              <button class="btn btn--outline" id="newLessonBtn">{{icon:video}} Process another file</button>
             </div>
             <div class="stat-grid">
               <div class="stat">
@@ -241,13 +241,27 @@
         </div>
       </section>
 
-      <!-- ===================== ADD VIDEO ===================== -->
+      <!-- ===================== ADD CONTENT (VIDEO & DOCUMENT) ===================== -->
       <section class="view" id="view-upload" data-view="upload" aria-labelledby="topbarTitle">
 
+        <!-- Content Source Mode Switcher -->
+        <div class="mode-tabs" role="tablist" aria-label="Upload method">
+          <button class="mode-tab is-active" id="tabYoutube" role="tab" aria-selected="true" aria-controls="panelYoutube">
+            <span class="mode-tab__icon">{{icon:video}}</span>
+            <span>YouTube Video</span>
+          </button>
+          <button class="mode-tab" id="tabDocument" role="tab" aria-selected="false" aria-controls="panelDocument">
+            <span class="mode-tab__icon">{{icon:doc}}</span>
+            <span>Upload Document</span>
+          </button>
+        </div>
+
         <div id="uploadIdleState">
-          <div class="url-card card">
+          
+          <!-- YOUTUBE PANEL -->
+          <div class="url-card card" id="panelYoutube" role="tabpanel" aria-labelledby="tabYoutube">
             <h2>Add a YouTube lesson</h2>
-            <p class="url-card__desc">Paste a link to a YouTube video below, then choose what you'd like first — Lumen processes the whole video either way, so every tab is ready once it's done.</p>
+            <p class="url-card__desc">Paste a link to a YouTube video below to analyze the transcript and generate AI key points, summary, and Q&A.</p>
 
             <div class="url-field">
               <span class="url-field__icon">{{icon:video}}</span>
@@ -261,36 +275,65 @@
             </div>
 
             <div class="url-card__actions">
-              <button class="btn btn--primary" id="actionSummaryBtn" data-target-view="summary">{{icon:layers}} Summarize</button>
-              <button class="btn btn--secondary" id="actionKeypointsBtn" data-target-view="keypoints">{{icon:star}} Key Points</button>
-              <button class="btn btn--secondary" id="actionQuestionsBtn" data-target-view="questions">{{icon:question}} Questions</button>
-              <button class="btn btn--secondary" id="actionAskBtn" data-target-view="ask-ai">{{icon:chat}} Ask AI</button>
+              <button class="btn btn--primary" id="processDocBtn" disabled>{{icon:layers}} Process Video</button>
             </div>
           </div>
+
+          <!-- DOCUMENT PANEL (NEW) -->
+          <div class="url-card card" id="panelDocument" role="tabpanel" aria-labelledby="tabDocument" hidden>
+            <h2>Upload a Document</h2>
+            <p class="url-card__desc">Upload a PDF, Word document, PowerPoint, or text file. Lumen will analyze the document content for instant summaries, key points, and AI Q&A.</p>
+
+            <!-- Drag and Drop Dropzone -->
+            <div class="dropzone" id="documentDropzone" tabindex="0" role="button" aria-label="Upload document area">
+              <input type="file" id="documentFileInput" accept=".pdf,.docx,.doc,.txt,.pptx,.epub,.md" hidden />
+              <div class="dropzone__content" id="dropzonePrompt">
+                <span class="dropzone__icon">{{icon:doc}}</span>
+                <p class="dropzone__title">Drag & drop your file here, or <span class="dropzone__browse">browse</span></p>
+                <p class="dropzone__hint">Supports PDF, DOCX, TXT, PPTX, EPUB, and MD (Up to 50MB)</p>
+              </div>
+              
+              <!-- File Selected Preview State -->
+              <div class="dropzone__selected" id="dropzoneSelected" hidden>
+                <span class="dropzone__file-icon">{{icon:doc}}</span>
+                <div class="dropzone__file-info">
+                  <span class="dropzone__file-name" id="docFileName">filename.pdf</span>
+                  <span class="dropzone__file-size" id="docFileSize">0 MB</span>
+                </div>
+                <button type="button" class="icon-btn icon-btn--sm" id="removeDocFileBtn" aria-label="Remove file">{{icon:close}}</button>
+              </div>
+            </div>
+
+            <div class="url-card__actions">
+              <button class="btn btn--primary" id="processDocBtn" disabled>{{icon:layers}} Process Document</button>
+            </div>
+          </div>
+
         </div>
 
+        <!-- Error Banner -->
         <div class="error-banner" id="uploadErrorBanner" hidden role="alert">
           <span class="error-banner__icon">{{icon:alert}}</span>
           <div>
-            <p class="error-banner__title">We couldn't process this link</p>
+            <p class="error-banner__title">We couldn't process this request</p>
             <p class="error-banner__message" id="uploadErrorMessage"></p>
           </div>
           <button class="icon-btn icon-btn--sm" id="dismissUploadError" aria-label="Dismiss">{{icon:close}}</button>
         </div>
 
-        <!-- Processing card -->
+        <!-- Processing Card -->
         <div class="card processing-card" id="processingCard" hidden aria-live="polite">
           <div class="processing-card__header">
-            <h2>Preparing your lesson</h2>
+            <h2 id="processingCardTitle">Preparing your content</h2>
             <span class="processing-card__percent" id="processingPercent">0%</span>
           </div>
           <div class="progress-track">
             <div class="progress-fill" id="progressFill"></div>
           </div>
           <ol class="step-list" id="stepList">
-            <li class="step" data-step="1"><span class="step__marker">{{icon:check}}</span><span class="step__label">Fetching video</span></li>
-            <li class="step" data-step="2"><span class="step__marker">{{icon:check}}</span><span class="step__label">Extracting audio</span></li>
-            <li class="step" data-step="3"><span class="step__marker">{{icon:check}}</span><span class="step__label">Transcribing</span></li>
+            <li class="step" data-step="1"><span class="step__marker">{{icon:check}}</span><span class="step__label" id="step1Label">Fetching video</span></li>
+            <li class="step" data-step="2"><span class="step__marker">{{icon:check}}</span><span class="step__label" id="step2Label">Extracting audio</span></li>
+            <li class="step" data-step="3"><span class="step__marker">{{icon:check}}</span><span class="step__label" id="step3Label">Transcribing</span></li>
             <li class="step" data-step="4"><span class="step__marker">{{icon:check}}</span><span class="step__label">Generating summary</span></li>
             <li class="step" data-step="5"><span class="step__marker">{{icon:check}}</span><span class="step__label">Extracting key points</span></li>
             <li class="step" data-step="6"><span class="step__marker">{{icon:check}}</span><span class="step__label">Generating questions</span></li>
@@ -301,7 +344,7 @@
         <!-- Processing failure -->
         <div class="card error-state" id="processingErrorCard" hidden>
           <span class="error-state__icon">{{icon:alert}}</span>
-          <h2>Something went wrong while processing this video</h2>
+          <h2>Something went wrong while processing</h2>
           <p id="processingErrorMessage">Please try again.</p>
           <div class="error-state__actions">
             <button class="btn btn--primary" id="retryProcessingBtn">Try again</button>
@@ -315,9 +358,9 @@
       <section class="view" id="view-transcript" data-view="transcript" aria-labelledby="topbarTitle">
         <div class="empty-state" id="transcriptEmpty">
           <span class="empty-state__icon">{{icon:doc}}</span>
-          <h2>No transcript yet</h2>
-          <p>Add a YouTube video to generate a full English transcript.</p>
-          <button class="btn btn--primary" data-view="upload">Add a video</button>
+          <h2>No content yet</h2>
+          <p>Add a YouTube video or document to generate a full transcript and parsed text.</p>
+          <button class="btn btn--primary" data-view="upload">Add content</button>
         </div>
 
         <div id="transcriptSkeleton" hidden>
@@ -329,10 +372,10 @@
           <div class="transcript-toolbar">
             <div class="search-field">
               <span class="search-field__icon">{{icon:search}}</span>
-              <input type="text" id="transcriptSearch" placeholder="Search the transcript" aria-label="Search transcript" />
+              <input type="text" id="transcriptSearch" placeholder="Search the content" aria-label="Search content" />
               <span class="search-field__count" id="transcriptMatchCount"></span>
             </div>
-            <button class="btn btn--ghost" id="copyTranscriptBtn">{{icon:copy}} Copy transcript</button>
+            <button class="btn btn--ghost" id="copyTranscriptBtn">{{icon:copy}} Copy content</button>
           </div>
           <div class="transcript-body" id="transcriptBody" tabindex="0"></div>
         </div>
@@ -343,8 +386,8 @@
         <div class="empty-state" id="summaryEmpty">
           <span class="empty-state__icon">{{icon:layers}}</span>
           <h2>No summary yet</h2>
-          <p>Add a video and Lumen will summarize it for you.</p>
-          <button class="btn btn--primary" data-view="upload">Add a video</button>
+          <p>Add content and Lumen will summarize it for you.</p>
+          <button class="btn btn--primary" data-view="upload">Add content</button>
         </div>
 
         <div id="summarySkeleton" hidden>
@@ -371,8 +414,8 @@
         <div class="empty-state" id="keypointsEmpty">
           <span class="empty-state__icon">{{icon:star}}</span>
           <h2>No key points yet</h2>
-          <p>Add a video to see its most important ideas.</p>
-          <button class="btn btn--primary" data-view="upload">Add a video</button>
+          <p>Add content to see its most important ideas.</p>
+          <button class="btn btn--primary" data-view="upload">Add content</button>
         </div>
 
         <div class="keypoints-grid" id="keypointsSkeleton" hidden>
@@ -389,8 +432,8 @@
         <div class="empty-state" id="questionsEmpty">
           <span class="empty-state__icon">{{icon:question}}</span>
           <h2>No questions yet</h2>
-          <p>Add a video to see the questions Lumen thinks matter most.</p>
-          <button class="btn btn--primary" data-view="upload">Add a video</button>
+          <p>Add content to see the questions Lumen thinks matter most.</p>
+          <button class="btn btn--primary" data-view="upload">Add content</button>
         </div>
 
         <div id="questionsSkeleton" hidden>
@@ -409,7 +452,7 @@
           <div class="chat-shell__header">
             <div>
               <h2>Ask AI About This Lesson</h2>
-              <p>Ask questions and get answers based only on the video's transcript.</p>
+              <p>Ask questions and get answers based only on the video or document's contents.</p>
             </div>
             <button class="btn btn--ghost" id="clearChatBtn">{{icon:trash}} Clear chat</button>
           </div>
@@ -417,7 +460,7 @@
           <div class="chat-messages" id="chatMessages" aria-live="polite">
             <div class="chat-empty" id="chatEmptyState">
               <span class="chat-empty__icon">{{icon:chat}}</span>
-              <p>Add a video, then ask anything about it. Answers stay grounded in the transcript — nothing else.</p>
+              <p>Add content, then ask anything about it. Answers stay grounded in the transcript/text — nothing else.</p>
             </div>
           </div>
 
@@ -439,7 +482,7 @@
       <section class="view" id="view-settings" data-view="settings" aria-labelledby="topbarTitle">
         <div class="card settings-card">
           <h2>Backend connection</h2>
-          <p class="settings-card__desc">Point Lumen at your FastAPI backend. Endpoints used: <code>POST /process</code>, <code>POST /ask</code>, <code>GET /health</code>.</p>
+          <p class="settings-card__desc">Point Lumen at your FastAPI backend. Endpoints used: <code>POST /process</code>, <code>POST /process-document</code>, <code>POST /ask</code>, <code>GET /health</code>.</p>
           <label class="field-label" for="apiBaseInput">API base URL</label>
           <div class="field-row">
             <input type="text" id="apiBaseInput" class="text-input" placeholder="http://localhost:8000" />
@@ -456,7 +499,7 @@
 
         <div class="card settings-card">
           <h2>How processing works</h2>
-          <p class="settings-card__desc">Each video is processed once and kept on the server under a session ID. Summary, key points, questions, transcript, and chat all come from that single pass — switching tabs doesn't reprocess the video.</p>
+          <p class="settings-card__desc">Each file is processed once and kept on the server under a session ID. Summary, key points, questions, transcript, and chat all come from that single pass — switching tabs doesn't reprocess the content.</p>
         </div>
 
         <div class="card settings-card">
@@ -487,5 +530,6 @@
 <script src="/static/js/12-settings.js"></script>
 <script src="/static/js/13-demo-lesson.js"></script>
 <script src="/static/js/14-init.js"></script>
+<script src="/static/js/15-document-process.js"></script>
 </body>
 </html>

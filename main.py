@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -29,6 +29,10 @@ from core.reg_engine import (
     ask_question as run_ask_question,
 )
 
+# Import the new document loader we discussed previously
+# Make sure to save the document_loader.py code in your 'core' directory!
+from core.pdf_upload import load_any_document
+
 load_dotenv()
 
 logging.basicConfig(
@@ -44,7 +48,7 @@ DOWNLOADS_DIR = BASE_DIR / "downloads"
 
 app = FastAPI(
     title="Lumen.ai API",
-    description="AI Video Assistant API",
+    description="AI Video & Document Assistant API",
     version="1.0.0",
 )
 
@@ -67,10 +71,6 @@ if STATIC_DIR.exists():
 
 sessions: dict[str, dict] = {}
 
-# Sessions live only in memory and are never explicitly cleaned up elsewhere,
-# so on a long-running server they'd otherwise grow forever. Once the cap is
-# hit, the oldest session is evicted to make room for the new one (dicts keep
-# insertion order in Python 3.7+, so the first key is the oldest).
 MAX_SESSIONS = 50
 
 
@@ -194,6 +194,7 @@ async def serve_frontend():
 
     return FileResponse(index_file)
 
+
 @app.get("/health")
 def health():
     return {
@@ -218,10 +219,7 @@ def process_video(
             detail="A video URL is required.",
         )
 
-    logger.info(
-        "Starting video processing: %s",
-        url,
-    )
+    logger.info("Starting video processing: %s", url)
 
     try:
         DOWNLOADS_DIR.mkdir(
@@ -240,10 +238,7 @@ def process_video(
                 "No audio chunks were generated."
             )
 
-        logger.info(
-            "Audio chunks generated: %d",
-            len(chunks),
-        )
+        logger.info("Audio chunks generated: %d", len(chunks))
 
         logger.info("Transcribing audio...")
 
@@ -265,18 +260,6 @@ def process_video(
                 "No transcript documents were created."
             )
 
-        logger.info(
-            "Transcript documents: %d",
-            len(transcript_docs),
-        )
-
-        for index, doc in enumerate(transcript_docs):
-            logger.info(
-                "Transcript %d: %d characters",
-                index,
-                len(doc.page_content),
-            )
-
         transcript_text = combine_transcript_text(
             transcript_docs
         )
@@ -287,31 +270,18 @@ def process_video(
             )
 
         logger.info("Generating summary...")
-
-        summary = summarize_transcript(
-            transcript=transcript_text
-        )
+        summary = summarize_transcript(transcript=transcript_text)
 
         logger.info("Generating title...")
-
-        title = generate_title(
-            transcript=transcript_text
-        )
+        title = generate_title(transcript=transcript_text)
 
         logger.info("Extracting key points...")
-
-        key_points = extract_key_points(
-            transcript=transcript_text
-        )
+        key_points = extract_key_points(transcript=transcript_text)
 
         logger.info("Extracting questions...")
-
-        questions = extract_questions(
-            transcript=transcript_text
-        )
+        questions = extract_questions(transcript=transcript_text)
 
         logger.info("Building RAG chain...")
-
         reg_chain = build_reg_chain(
             transcripts=transcript_docs
         )
@@ -328,11 +298,7 @@ def process_video(
             sessions.pop(oldest_id, None)
             logger.info("Session cap reached, evicted oldest session: %s", oldest_id)
 
-        logger.info(
-            "Video processing completed successfully. Session: %s",
-            session_id,
-        )
-
+        logger.info("Video processing completed successfully. Session: %s", session_id)
         cleanup_downloads()
 
         return ProcessResponse(
@@ -349,16 +315,99 @@ def process_video(
         raise
 
     except Exception as exc:
-        logger.exception(
-            "Failed to process video: %s",
-            url,
-        )
-
+        logger.exception("Failed to process video: %s", url)
         cleanup_downloads()
-
         raise HTTPException(
             status_code=500,
             detail=f"PROCESS ERROR: {str(exc)}",
+        )
+
+
+# ==========================================
+# NEW ENDPOINT: PROCESS UPLOADED DOCUMENTS
+# ==========================================
+@app.post(
+    "/process-document",
+    response_model=ProcessResponse,
+)
+async def process_document(
+    file: UploadFile = File(...),
+) -> ProcessResponse:
+    
+    logger.info("Starting document processing for file: %s", file.filename)
+
+    try:
+        DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+        # 1. Save uploaded file temporarily
+        file_path = DOWNLOADS_DIR / file.filename
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # 2. Extract Document objects using our universal loader
+        logger.info("Loading document content...")
+        document_pages = load_any_document(str(file_path))
+
+        if not document_pages:
+            raise ValueError("No content could be extracted from the document.")
+
+        # 3. Combine document text for the LLM functions
+        full_text = "\n\n".join([doc.page_content for doc in document_pages])
+
+        if not full_text.strip():
+            raise ValueError("The uploaded document is empty or contains no readable text.")
+
+        # 4. Generate the same artifacts as a video
+        logger.info("Generating summary...")
+        summary = summarize_transcript(transcript=full_text)
+
+        logger.info("Generating title...")
+        title = generate_title(transcript=full_text)
+
+        logger.info("Extracting key points...")
+        key_points = extract_key_points(transcript=full_text)
+
+        logger.info("Extracting questions...")
+        questions = extract_questions(transcript=full_text)
+
+        logger.info("Building RAG chain...")
+        reg_chain = build_reg_chain(
+            transcripts=document_pages
+        )
+
+        # 5. Create Session
+        session_id = str(uuid.uuid4())
+        sessions[session_id] = {
+            "reg_chain": reg_chain,
+            "transcript": full_text,  
+        }
+
+        if len(sessions) > MAX_SESSIONS:
+            oldest_id = next(iter(sessions))
+            sessions.pop(oldest_id, None)
+            logger.info("Session cap reached, evicted oldest session: %s", oldest_id)
+
+        logger.info("Document processing completed successfully. Session: %s", session_id)
+        cleanup_downloads()
+
+        return ProcessResponse(
+            success=True,
+            session_id=session_id,
+            title=str(title),
+            summary=str(summary),
+            key_points=to_list(key_points),
+            questions=to_list(questions),
+            transcript=full_text,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Failed to process document: %s", file.filename)
+        cleanup_downloads()
+        raise HTTPException(
+            status_code=500,
+            detail=f"DOCUMENT PROCESS ERROR: {str(exc)}",
         )
 
 
@@ -390,14 +439,10 @@ def ask(
     if session is None:
         raise HTTPException(
             status_code=404,
-            detail="Session not found. Analyze a video first.",
+            detail="Session not found. Analyze a video or document first.",
         )
 
-    logger.info(
-        "Question received for session %s: %s",
-        session_id,
-        question,
-    )
+    logger.info("Question received for session %s: %s", session_id, question)
 
     try:
         answer = run_ask_question(
@@ -411,10 +456,7 @@ def ask(
         )
 
     except Exception as exc:
-        logger.exception(
-            "Failed to answer question for session %s",
-            session_id,
-        )
+        logger.exception("Failed to answer question for session %s", session_id)
 
         raise HTTPException(
             status_code=500,
