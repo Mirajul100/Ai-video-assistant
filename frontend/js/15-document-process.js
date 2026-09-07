@@ -210,6 +210,10 @@
       updateSidebarChip("error", "Processing failed");
       
       const message = err.friendly || "Something went wrong while processing this document. Please try again.";
+      
+      // Hide the processing card so the error card can show up
+      $("#processingCard").hidden = true;
+      
       $("#processingErrorMessage").textContent = message;
       $("#processingErrorCard").hidden = false;
       showToast(message, "error");

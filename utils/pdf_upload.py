@@ -17,8 +17,6 @@ def load_pdf_pages(file_path: str) -> list[Document]:
 def load_word_pages(file_path: str) -> list[Document]:
     doc = docx.Document(file_path)
     full_text = [para.text for para in doc.paragraphs if para.text.strip()]
-    
-    # Returning as a single document chunk for the whole Word file
     return [Document(
         page_content="\n\n".join(full_text),
         metadata={"source": file_path}
@@ -27,23 +25,29 @@ def load_word_pages(file_path: str) -> list[Document]:
 def load_ppt_pages(file_path: str) -> list[Document]:
     prs = Presentation(file_path)
     docs = []
-    
     for i, slide in enumerate(prs.slides):
         slide_text = []
         for shape in slide.shapes:
             if hasattr(shape, "text") and shape.text.strip():
                 slide_text.append(shape.text.strip())
-                
         if slide_text:
             docs.append(Document(
                 page_content="\n".join(slide_text),
                 metadata={"source": file_path, "slide": i + 1}
             ))
-            
     return docs
 
+# NEW: Function to handle simple text and markdown files
+def load_text_pages(file_path: str) -> list[Document]:
+    with open(file_path, 'r', encoding='utf-8') as f:
+        text = f.read()
+    return [Document(
+        page_content=text,
+        metadata={"source": file_path}
+    )]
+
 def load_any_document(file_path: str) -> list[Document]:
-    """Loads PDF, DOCX, or PPTX and returns a list of Langchain Documents."""
+    """Loads PDF, DOCX, PPTX, TXT, or MD and returns a list of Langchain Documents."""
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
         
@@ -55,5 +59,8 @@ def load_any_document(file_path: str) -> list[Document]:
         return load_word_pages(file_path)
     elif ext in ['.pptx', '.ppt']:
         return load_ppt_pages(file_path)
+    # NEW: Added condition for text and markdown files
+    elif ext in ['.txt', '.md']:
+        return load_text_pages(file_path)
     else:
-        raise ValueError(f"Unsupported file format: {ext}. Please use PDF, DOCX, or PPTX.")
+        raise ValueError(f"Unsupported file format: {ext}. Please use PDF, DOCX, PPTX, TXT, or MD.")

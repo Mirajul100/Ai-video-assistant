@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Google Sign-In Script -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
@@ -69,11 +71,12 @@
       </ul>
     </nav>
 
-    <div class="sidebar__footer">
-      <div class="lesson-chip" id="sidebarLessonChip" hidden>
-        <span class="lesson-chip__dot" id="sidebarStatusDot"></span>
-        <span class="lesson-chip__text" id="sidebarLessonName">No content loaded</span>
-      </div>
+    <!-- NEW: Sidebar History -->
+    <div class="sidebar__history">
+      <h3 class="sidebar__heading">Recent Lessons</h3>
+      <ul class="nav-list" id="sidebarHistoryList">
+        <li><button class="nav-item nav-item--history" disabled>Log in to save history</button></li>
+      </ul>
     </div>
   </aside>
 
@@ -109,14 +112,14 @@
         </div>
         <div class="topbar__action-wrap">
           <button class="profile-btn" id="profileBtn" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
-            <span class="avatar">MR</span>
+            <span class="avatar">@</span>
           </button>
           <div class="dropdown-panel dropdown-panel--profile" id="profilePanel" role="menu" hidden>
             <div class="dropdown-panel__profile">
-              <span class="avatar avatar--lg">MR</span>
+              <span class="avatar avatar--lg">@</span>
               <div>
-                <p class="dropdown-panel__name">Mirajul Islam Anik</p>
-                <p class="dropdown-panel__role">Account</p>
+                <p class="dropdown-panel__name">Guest Account</p>
+                <p class="dropdown-panel__role">Log in to save history</p>
               </div>
             </div>
             <button class="dropdown-item" data-view="settings" role="menuitem">{{icon:gear}} Settings</button>
@@ -131,7 +134,6 @@
 
       <!-- ===================== DASHBOARD ===================== -->
       <section class="view is-active" id="view-dashboard" data-view="dashboard" aria-labelledby="topbarTitle">
-
         <!-- Empty state: no lesson yet -->
         <div id="dashboardEmptyState">
           <div class="hero">
@@ -140,7 +142,7 @@
               <h2 class="hero__title">Learn Smarter with AI</h2>
               <p class="hero__subtitle">Paste a YouTube lesson link or upload a document to turn it into a clear transcript, summary, key points, and interactive Q&amp;A.</p>
               <div class="hero__actions">
-                <button class="btn btn--primary" id="heroAddVideoBtn" >{{icon:video}} Add content</button>
+                <button class="btn btn--primary" id="heroAddVideoBtn">{{icon:video}} Add content</button>
               </div>
               <button class="btn-text" id="heroDemoBtn">Or try a sample lesson →</button>
             </div>
@@ -241,10 +243,10 @@
         </div>
       </section>
 
-      <!-- ===================== ADD CONTENT (VIDEO & DOCUMENT) ===================== -->
+      <!-- ===================== ADD CONTENT ===================== -->
       <section class="view" id="view-upload" data-view="upload" aria-labelledby="topbarTitle">
 
-        <!-- Content Source Mode Switcher -->
+        <!-- Mode Switcher Tabs -->
         <div class="mode-tabs" role="tablist" aria-label="Upload method">
           <button class="mode-tab is-active" id="tabYoutube" role="tab" aria-selected="true" aria-controls="panelYoutube">
             <span class="mode-tab__icon">{{icon:video}}</span>
@@ -257,7 +259,6 @@
         </div>
 
         <div id="uploadIdleState">
-          
           <!-- YOUTUBE PANEL -->
           <div class="url-card card" id="panelYoutube" role="tabpanel" aria-labelledby="tabYoutube">
             <h2>Add a YouTube lesson</h2>
@@ -282,12 +283,11 @@
             </div>
           </div>
 
-          <!-- DOCUMENT PANEL (NEW) -->
+          <!-- DOCUMENT PANEL -->
           <div class="url-card card" id="panelDocument" role="tabpanel" aria-labelledby="tabDocument" hidden>
             <h2>Upload a Document</h2>
             <p class="url-card__desc">Upload a PDF, Word document, PowerPoint, or text file. Lumen will analyze the document content for instant summaries, key points, and AI Q&A.</p>
 
-            <!-- Drag and Drop Dropzone -->
             <div class="dropzone" id="documentDropzone" tabindex="0" role="button" aria-label="Upload document area">
               <input type="file" id="documentFileInput" accept=".pdf,.docx,.doc,.txt,.pptx,.epub,.md" hidden />
               <div class="dropzone__content" id="dropzonePrompt">
@@ -296,7 +296,6 @@
                 <p class="dropzone__hint">Supports PDF, DOCX, TXT, PPTX, EPUB, and MD (Up to 50MB)</p>
               </div>
               
-              <!-- File Selected Preview State -->
               <div class="dropzone__selected" id="dropzoneSelected" hidden>
                 <span class="dropzone__file-icon">{{icon:doc}}</span>
                 <div class="dropzone__file-info">
@@ -311,10 +310,8 @@
               <button class="btn btn--primary" id="processDocBtn" disabled>{{icon:layers}} Process Document</button>
             </div>
           </div>
-
         </div>
 
-        <!-- Error Banner -->
         <div class="error-banner" id="uploadErrorBanner" hidden role="alert">
           <span class="error-banner__icon">{{icon:alert}}</span>
           <div>
@@ -324,7 +321,6 @@
           <button class="icon-btn icon-btn--sm" id="dismissUploadError" aria-label="Dismiss">{{icon:close}}</button>
         </div>
 
-        <!-- Processing Card -->
         <div class="card processing-card" id="processingCard" hidden aria-live="polite">
           <div class="processing-card__header">
             <h2 id="processingCardTitle">Preparing your content</h2>
@@ -334,9 +330,9 @@
             <div class="progress-fill" id="progressFill"></div>
           </div>
           <ol class="step-list" id="stepList">
-            <li class="step" data-step="1"><span class="step__marker">{{icon:check}}</span><span class="step__label" id="step1Label">Fetching video</span></li>
-            <li class="step" data-step="2"><span class="step__marker">{{icon:check}}</span><span class="step__label" id="step2Label">Extracting audio</span></li>
-            <li class="step" data-step="3"><span class="step__marker">{{icon:check}}</span><span class="step__label" id="step3Label">Transcribing</span></li>
+            <li class="step" data-step="1"><span class="step__marker">{{icon:check}}</span><span class="step__label" id="step1Label">Fetching content</span></li>
+            <li class="step" data-step="2"><span class="step__marker">{{icon:check}}</span><span class="step__label" id="step2Label">Extracting media</span></li>
+            <li class="step" data-step="3"><span class="step__marker">{{icon:check}}</span><span class="step__label" id="step3Label">Parsing & Transcribing</span></li>
             <li class="step" data-step="4"><span class="step__marker">{{icon:check}}</span><span class="step__label">Generating summary</span></li>
             <li class="step" data-step="5"><span class="step__marker">{{icon:check}}</span><span class="step__label">Extracting key points</span></li>
             <li class="step" data-step="6"><span class="step__marker">{{icon:check}}</span><span class="step__label">Generating questions</span></li>
@@ -344,7 +340,6 @@
           </ol>
         </div>
 
-        <!-- Processing failure -->
         <div class="card error-state" id="processingErrorCard" hidden>
           <span class="error-state__icon">{{icon:alert}}</span>
           <h2>Something went wrong while processing</h2>
@@ -519,6 +514,43 @@
 <!-- Toast container -->
 <div class="toast-stack" id="toastStack" aria-live="assertive"></div>
 
+<!-- NEW: Auth Modal -->
+<div class="modal-backdrop" id="authModal" hidden>
+  <div class="modal card">
+    <div class="modal__header">
+      <h2 id="authTitle">Welcome Back</h2>
+      <button class="icon-btn icon-btn--sm" id="closeAuthBtn">{{icon:close}}</button>
+    </div>
+    
+    <div class="auth-tabs">
+      <button class="auth-tab is-active" id="tabLogin">Log In</button>
+      <button class="auth-tab" id="tabRegister">Register</button>
+    </div>
+
+    <form id="authForm" class="auth-form">
+      <div id="nameField" hidden>
+        <label class="field-label" for="authName">Full Name</label>
+        <input type="text" id="authName" class="text-input" placeholder="Maya Rahman" />
+      </div>
+      <div>
+        <label class="field-label" for="authEmail">Email</label>
+        <input type="email" id="authEmail" class="text-input" required />
+      </div>
+      <div>
+        <label class="field-label" for="authPassword">Password</label>
+        <input type="password" id="authPassword" class="text-input" required />
+      </div>
+      <p class="error-text" id="authError" hidden></p>
+      <button type="submit" class="btn btn--primary w-100" id="authSubmit">Log In</button>
+    </form>
+
+    <div class="auth-divider"><span>or continue with</span></div>
+    
+    <!-- Google Auth Button Container -->
+    <div id="googleButtonContainer" class="google-btn-wrap"></div>
+  </div>
+</div>
+
 <script src="/static/js/01-icon-system.js"></script>
 <script src="/static/js/02-config-state.js"></script>
 <script src="/static/js/03-utilities.js"></script>
@@ -534,5 +566,6 @@
 <script src="/static/js/13-demo-lesson.js"></script>
 <script src="/static/js/14-init.js"></script>
 <script src="/static/js/15-document-process.js"></script>
+<script src="/static/js/16-auth.js"></script>
 </body>
 </html>
