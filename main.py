@@ -19,7 +19,7 @@ from core.transcribe_gemini import transcribe_chunks, combine_transcript_text
 from core.summerize import summarize_transcript, generate_title
 from core.extractor import extract_key_points, extract_questions
 from core.reg_engine import build_reg_chain, ask_question as run_ask_question
-from core.data_base import init_db, save_lesson, get_user_history
+from core.data_base import init_db, save_lesson, get_user_history, get_lesson_by_id 
 from core.auth import auth_router, SECRET_KEY, ALGORITHM
 
 load_dotenv()
@@ -126,6 +126,29 @@ def get_history(user_id: str = Depends(get_current_user)):
     if not user_id: raise HTTPException(status_code=401, detail="Not authenticated")
     return {"history": get_user_history(user_id)}
 
+
+# --- NEW: API Route to load a specific saved lesson ---
+@app.get("/lesson/{session_id}")
+def fetch_lesson(session_id: str, user_id: str = Depends(get_current_user)):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    lesson_data = get_lesson_by_id(session_id, user_id)
+    if not lesson_data:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+        
+    # Rebuild the ChromaDB/Langchain memory for this old session so AI Chat still works
+    if session_id not in sessions:
+        transcript_docs = normalize_documents(lesson_data["transcript"])
+        sessions[session_id] = {
+            "reg_chain": build_reg_chain(transcripts=transcript_docs),
+            "transcript": lesson_data["transcript"]
+        }
+        
+    return lesson_data
+# --------------------------------------------------------
+
+
 @app.post("/process", response_model=ProcessResponse)
 def process_video(payload: ProcessRequest, user_id: str = Depends(get_current_user)) -> ProcessResponse:
     url = payload.url.strip()
@@ -164,7 +187,6 @@ def process_video(payload: ProcessRequest, user_id: str = Depends(get_current_us
         raise HTTPException(status_code=500, detail=f"PROCESS ERROR: {str(exc)}")
 
 
-# FIX: Removed 'async' from this function to prevent freezing
 @app.post("/process-document", response_model=ProcessResponse)
 def process_document(file: UploadFile = File(...), user_id: str = Depends(get_current_user)) -> ProcessResponse:
     try:
@@ -196,6 +218,7 @@ def process_document(file: UploadFile = File(...), user_id: str = Depends(get_cu
         cleanup_downloads()
         raise HTTPException(status_code=500, detail=f"DOCUMENT ERROR: {str(exc)}")
 
+
 @app.post("/ask", response_model=AskResponse)
 def ask(payload: AskRequest) -> AskResponse:
     session = sessions.get(payload.session_id.strip())
@@ -206,6 +229,7 @@ def ask(payload: AskRequest) -> AskResponse:
         return AskResponse(success=True, answer=str(answer))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"ASK ERROR: {str(exc)}")
+
 
 if __name__ == "__main__":
     import uvicorn

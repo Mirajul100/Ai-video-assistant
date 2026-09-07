@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import json
 from pathlib import Path
 
 DB_PATH = "lumen.db"
@@ -70,5 +71,29 @@ def get_lesson(session_id):
             "questions": json.loads(row[5]),
             "transcript": row[6],
             "created_at": row[7]
+        }
+    return None
+
+def get_lesson_by_id(session_id: str, user_id: str):
+    import sqlite3
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT title, summary, key_points, questions, transcript 
+        FROM lessons 
+        WHERE session_id = ? AND user_id = ?
+    """, (session_id, user_id))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return {
+            "success": True,
+            "session_id": session_id,
+            "title": row[0],
+            "summary": row[1],
+            "key_points": json.loads(row[2]) if row[2] else [],
+            "questions": json.loads(row[3]) if row[3] else [],
+            "transcript": row[4]
         }
     return None

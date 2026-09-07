@@ -43,6 +43,7 @@
     backdrop.dataset.open = "true";
     $("#menuToggle").setAttribute("aria-expanded", "true");
   }
+  
   function closeSidebarMobile() {
     $("#sidebar").classList.remove("is-open");
     const backdrop = $("#sidebarBackdrop");
@@ -67,3 +68,8 @@
       }
     });
   }
+
+  window.setActiveView = setActiveView;
+  window.openSidebarMobile = openSidebarMobile;
+  window.closeSidebarMobile = closeSidebarMobile;
+  window.initNavigation = initNavigation;

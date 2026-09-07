@@ -26,7 +26,6 @@
   }
 
   function normalizeTranscript(raw) {
-    // Supports either a plain string or an array of { time, text } segments.
     if (Array.isArray(raw)) {
       return raw.map((seg) => ({
         time: seg.time || seg.timestamp || null,
@@ -68,8 +67,10 @@
     renderKeyPoints();
     renderQuestions();
     renderTranscript();
-    renderChatEmpty();
-    enableChatInput(true);
+    
+    // Safety check in case chat file isn't loaded yet
+    if (typeof renderChatEmpty === 'function') renderChatEmpty();
+    if (typeof enableChatInput === 'function') enableChatInput(true);
   }
 
   function renderDashboardLesson() {
@@ -89,7 +90,7 @@
       thumbEl.removeAttribute("src");
     }
     $("#overviewSourceLink").href = lesson.sourceUrl || "#";
-    $("#overviewSourceLabel").textContent = lesson.sourceUrl ? "Watch on YouTube" : "Sample lesson (demo)";
+    $("#overviewSourceLabel").textContent = lesson.sourceUrl ? "Watch on YouTube" : "Saved Lesson";
     $("#overviewWordCount").textContent = lesson.wordCount.toLocaleString();
     $("#overviewKeypointCount").textContent = String(lesson.keyPoints.length);
     $("#overviewProcessedAt").textContent = lesson.processedAt.toLocaleString(undefined, {
@@ -159,7 +160,6 @@
     const list = $("#questionsList");
     list.hidden = false;
     
-    // FIX 1: Add type="button" and use data-index instead of embedding full text strings
     list.innerHTML = lesson.questions
       .map(
         (q, idx) => `<li>
@@ -172,15 +172,15 @@
       )
       .join("");
 
-    // FIX 2: Explicitly scope the querySelectorAll to the list element
     list.querySelectorAll(".question-item").forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        e.preventDefault(); // FIX 3: Stop any default form submission behaviors
+        e.preventDefault(); 
         setActiveView("ask-ai");
         
-        // Retrieve the exact string from the array using the index
         const questionText = lesson.questions[btn.dataset.index];
-        setTimeout(() => sendChatMessage(questionText), 150);
+        if (typeof sendChatMessage === 'function') {
+          setTimeout(() => sendChatMessage(questionText), 150);
+        }
       });
     });
   }
@@ -227,3 +227,12 @@
       if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
     }
   }
+
+  // গ্লোবাল কানেকশন যুক্ত করা হলো
+  window.applyLessonData = applyLessonData;
+  window.renderDashboardLesson = renderDashboardLesson;
+  window.renderSummary = renderSummary;
+  window.renderKeyPoints = renderKeyPoints;
+  window.renderQuestions = renderQuestions;
+  window.renderTranscript = renderTranscript;
+  window.paintTranscriptBody = paintTranscriptBody;
