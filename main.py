@@ -11,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from langchain_core.documents import Document
+
+# Custom imports
 from utils.adio_processing import process_audio_input
 from utils.pdf_upload import load_any_document
 from core.transcribe_gemini import transcribe_chunks, combine_transcript_text
@@ -161,8 +163,10 @@ def process_video(payload: ProcessRequest, user_id: str = Depends(get_current_us
         cleanup_downloads()
         raise HTTPException(status_code=500, detail=f"PROCESS ERROR: {str(exc)}")
 
+
+# FIX: Removed 'async' from this function to prevent freezing
 @app.post("/process-document", response_model=ProcessResponse)
-async def process_document(file: UploadFile = File(...), user_id: str = Depends(get_current_user)) -> ProcessResponse:
+def process_document(file: UploadFile = File(...), user_id: str = Depends(get_current_user)) -> ProcessResponse:
     try:
         DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
         file_path = DOWNLOADS_DIR / file.filename

@@ -49,7 +49,7 @@
         });
         google.accounts.id.renderButton(
           document.getElementById("googleButtonContainer"),
-          { theme: "outline", size: "large", width: "100%" }
+          { theme: "outline", size: "large", width: "300" }
         );
       }
     }, 100); 

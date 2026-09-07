@@ -1,6 +1,9 @@
 // LUMEN — AI Lesson Assistant
 // Section 8: PROCESSING PIPELINE
 
+(function () {
+  'use strict';
+
   /* -----------------------------------------------------------------
      8. PROCESSING PIPELINE
   ----------------------------------------------------------------- */
@@ -22,21 +25,28 @@
     for (let i = 1; i < stepNumber; i++) setStepState(i, "is-done");
     setStepState(stepNumber, "is-active");
     state.processing.currentStep = stepNumber;
-    const pct = Math.round(((stepNumber - 1) / PROCESSING_STEPS.length) * 100);
-    $("#progressFill").style.width = `${pct}%`;
-    $("#processingPercent").textContent = `${pct}%`;
+    const pct = Math.round(((stepNumber - 1) / 7) * 100); // Assumes 7 steps max
+    if ($("#progressFill")) $("#progressFill").style.width = `${pct}%`;
+    if ($("#processingPercent")) $("#processingPercent").textContent = `${pct}%`;
   }
 
   function completeAllSteps() {
-    PROCESSING_STEPS.forEach((_, i) => setStepState(i + 1, "is-done"));
-    $("#progressFill").style.width = "100%";
-    $("#processingPercent").textContent = "100%";
+    $all(".step").forEach((_, i) => setStepState(i + 1, "is-done"));
+    if ($("#progressFill")) $("#progressFill").style.width = "100%";
+    if ($("#processingPercent")) $("#processingPercent").textContent = "100%";
   }
 
   function failAtCurrentStep() {
     const step = state.processing.currentStep || 1;
     setStepState(step, "is-error");
   }
+
+  // Ensure this function is attached to the window so other files can call it
+  window.resetSteps = resetSteps;
+  window.advanceToStep = advanceToStep;
+  window.completeAllSteps = completeAllSteps;
+  window.failAtCurrentStep = failAtCurrentStep;
+  window.updateSidebarChip = updateSidebarChip;
 
   async function beginProcessing(url) {
     resetSteps();
@@ -94,6 +104,10 @@
       const message =
         (err && err.friendly) ||
         "Something went wrong while processing this video. Please try again.";
+      
+      // Safety check to ensure we hide the processing card on failure
+      if ($("#processingCard")) $("#processingCard").hidden = true;
+      
       $("#processingErrorMessage").textContent = message;
       $("#processingErrorCard").hidden = false;
       showToast(message, "error");
@@ -139,7 +153,16 @@
   function updateSidebarChip(status, text) {
     const chip = $("#sidebarLessonChip");
     const dot = $("#sidebarStatusDot");
+    const nameLabel = $("#sidebarLessonName");
+    
+    // FIX: Safely exit if these elements don't exist in the HTML layout
+    if (!chip || !dot || !nameLabel) return;
+    
     chip.hidden = false;
     dot.className = "lesson-chip__dot" + (status === "ready" ? " is-ready" : status === "busy" ? " is-busy" : "");
-    $("#sidebarLessonName").textContent = text;
+    nameLabel.textContent = text;
   }
+  
+  window.beginProcessing = beginProcessing;
+
+})();

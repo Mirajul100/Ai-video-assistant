@@ -59,7 +59,6 @@ def load_any_document(file_path: str) -> list[Document]:
         return load_word_pages(file_path)
     elif ext in ['.pptx', '.ppt']:
         return load_ppt_pages(file_path)
-    # NEW: Added condition for text and markdown files
     elif ext in ['.txt', '.md']:
         return load_text_pages(file_path)
     else:
