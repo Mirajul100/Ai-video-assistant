@@ -1,107 +1,158 @@
-// LUMEN — AI Lesson Assistant
-// Section 7: YOUTUBE URL INPUT — SELECTION & VALIDATION
+function showUploadError(message) {
+  const msgEl = document.getElementById("uploadErrorMessage");
+  const banner = document.getElementById("uploadErrorBanner");
+  if (msgEl) msgEl.textContent = message;
+  if (banner) banner.hidden = false;
+}
 
-  /* -----------------------------------------------------------------
-     7. YOUTUBE URL INPUT — SELECTION & VALIDATION
-  ----------------------------------------------------------------- */
-  function showUploadError(message) {
-    $("#uploadErrorMessage").textContent = message;
-    $("#uploadErrorBanner").hidden = false;
+function hideUploadError() {
+  const banner = document.getElementById("uploadErrorBanner");
+  if (banner) banner.hidden = true;
+}
+
+function handleUrlInput() {
+  const input = document.getElementById("youtubeUrlInput");
+  if (!input) return;
+  const url = input.value.trim();
+  
+  const clearBtn = document.getElementById("clearUrlBtn");
+  if (clearBtn) clearBtn.hidden = !url;
+
+  const id = typeof extractYoutubeId === 'function' ? extractYoutubeId(url) : null;
+  const thumbPreview = document.getElementById("videoThumbPreview");
+  const thumbImg = document.getElementById("videoThumbImg");
+  
+  if (id) {
+    if (thumbImg) thumbImg.src = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+    if (thumbPreview) thumbPreview.hidden = false;
+  } else {
+    if (thumbPreview) thumbPreview.hidden = true;
   }
-  function hideUploadError() {
-    $("#uploadErrorBanner").hidden = true;
+}
+
+function resetUploadUI() {
+  const urlInput = document.getElementById("youtubeUrlInput");
+  if (urlInput) urlInput.value = "";
+  
+  const clearBtn = document.getElementById("clearUrlBtn");
+  if (clearBtn) clearBtn.hidden = true;
+  
+  const thumbPreview = document.getElementById("videoThumbPreview");
+  if (thumbPreview) thumbPreview.hidden = true;
+  
+  hideUploadError();
+
+  if (typeof clearFileSelection === "function") clearFileSelection();
+
+  const idleState = document.getElementById("uploadIdleState");
+  if (idleState) idleState.hidden = false;
+  
+  const processingCard = document.getElementById("processingCard");
+  if (processingCard) processingCard.hidden = true;
+  
+  const processingErrorCard = document.getElementById("processingErrorCard");
+  if (processingErrorCard) processingErrorCard.hidden = true;
+
+  if (typeof resetSteps === 'function') resetSteps();
+}
+
+function handleActionButton(targetView) {
+  const input = document.getElementById("youtubeUrlInput");
+  if (!input) return;
+  const url = input.value.trim();
+  
+  const error = typeof validateYoutubeUrl === 'function' ? validateYoutubeUrl(url) : null;
+  if (error) {
+    showUploadError(error);
+    return;
+  }
+  hideUploadError();
+
+  if (typeof state !== 'undefined' && state.lesson && state.lastProcessedUrl === url) {
+    if (typeof setActiveView === 'function') setActiveView(targetView);
+    return;
   }
 
-  // Live-updates the thumbnail preview and clear button as the person types
-  // or pastes a link. Doesn't trigger processing by itself.
-  function handleUrlInput() {
-    const url = $("#youtubeUrlInput").value.trim();
-    $("#clearUrlBtn").hidden = !url;
-
-    const id = extractYoutubeId(url);
-    if (id) {
-      $("#videoThumbImg").src = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-      $("#videoThumbPreview").hidden = false;
-    } else {
-      $("#videoThumbPreview").hidden = true;
-    }
-  }
-
-  function resetUploadUI() {
-    $("#youtubeUrlInput").value = "";
-    $("#clearUrlBtn").hidden = true;
-    $("#videoThumbPreview").hidden = true;
-    $("#processingCard").hidden = true;
-    $("#processingErrorCard").hidden = true;
-    hideUploadError();
-    resetSteps();
-  }
-
-  // Any of the four action buttons (Summarize / Key Points / Questions / Ask AI)
-  // can kick off processing -- they all just differ in which view they land on
-  // once the single /process call returns everything. If this exact URL was
-  // already processed, skip straight to the view instead of reprocessing.
-  function handleActionButton(targetView) {
-    const url = $("#youtubeUrlInput").value.trim();
-    const error = validateYoutubeUrl(url);
-    if (error) {
-      showUploadError(error);
-      return;
-    }
-    hideUploadError();
-
-    if (state.lesson && state.lastProcessedUrl === url) {
-      setActiveView(targetView);
-      return;
-    }
-
-    if (state.processing.active) {
-      // Already processing this link -- just redirect where we'll land once
-      // it finishes instead of firing a second, duplicate request.
-      state.pendingTargetView = targetView;
-      return;
-    }
-
+  if (typeof state !== 'undefined' && state.processing && state.processing.active) {
     state.pendingTargetView = targetView;
-    beginProcessing(url);
+    return;
   }
 
-  function initUpload() {
-    const urlInput = $("#youtubeUrlInput");
+  if (typeof state !== 'undefined') state.pendingTargetView = targetView;
+  if (typeof beginProcessing === 'function') beginProcessing(url);
+}
 
-    urlInput.addEventListener("input", handleUrlInput);
-    urlInput.addEventListener("keydown", (e) => {
+function initUpload() {
+  document.addEventListener("input", (e) => {
+    if (e.target && e.target.id === "youtubeUrlInput") {
+      handleUrlInput();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.target && e.target.id === "youtubeUrlInput") {
       if (e.key === "Enter") {
         e.preventDefault();
         handleActionButton("summary");
       }
-    });
+    }
+  });
 
-    $("#clearUrlBtn").addEventListener("click", () => {
-      urlInput.value = "";
-      urlInput.focus();
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("#clearUrlBtn")) {
+      const urlInput = document.getElementById("youtubeUrlInput");
+      if (urlInput) {
+        urlInput.value = "";
+        urlInput.focus();
+      }
       handleUrlInput();
-    });
+      return;
+    }
 
-    $all("[data-target-view]").forEach((btn) => {
-      btn.addEventListener("click", () => handleActionButton(btn.dataset.targetView));
-    });
+    const actionBtn = e.target.closest("[data-target-view]");
+    if (actionBtn) {
+      handleActionButton(actionBtn.dataset.targetView);
+      return;
+    }
 
-    $("#dismissUploadError").addEventListener("click", hideUploadError);
+    if (e.target.closest("#dismissUploadError")) {
+      hideUploadError();
+      return;
+    }
 
-    // Dashboard hero shortcut jumps to the Add Video view and focuses the input
-    $("#heroAddVideoBtn").addEventListener("click", () => {
-      setActiveView("upload");
-      setTimeout(() => urlInput.focus(), 60);
-    });
-    $("#newLessonBtn").addEventListener("click", () => {
-      setActiveView("upload");
+    if (e.target.closest("#heroAddVideoBtn")) {
+      if (typeof setActiveView === 'function') setActiveView("upload");
+      setTimeout(() => {
+        const input = document.getElementById("youtubeUrlInput");
+        if (input) input.focus();
+      }, 60);
+      return;
+    }
+
+    if (e.target.closest("#newLessonBtn")) {
+      if (typeof setActiveView === 'function') setActiveView("upload");
       resetUploadUI();
-    });
+      return;
+    }
 
-    $("#retryProcessingBtn").addEventListener("click", () => {
-      $("#processingErrorCard").hidden = true;
-      beginProcessing(urlInput.value.trim());
-    });
-    $("#cancelProcessingBtn").addEventListener("click", resetUploadUI);
-  }
+    if (e.target.closest("#retryProcessingBtn")) {
+      const errCard = document.getElementById("processingErrorCard");
+      if (errCard) errCard.hidden = true;
+      const input = document.getElementById("youtubeUrlInput");
+      if (input && typeof beginProcessing === 'function') {
+        beginProcessing(input.value.trim());
+      }
+      return;
+    }
+
+    if (e.target.closest("#cancelProcessingBtn")) {
+      resetUploadUI();
+      return;
+    }
+  });
+}
+
+window.resetUploadUI = resetUploadUI;
+window.showUploadError = showUploadError;
+window.hideUploadError = hideUploadError;
+window.initUpload = initUpload;

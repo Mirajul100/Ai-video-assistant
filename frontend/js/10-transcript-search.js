@@ -5,29 +5,49 @@
      10. TRANSCRIPT — copy & search wiring
   ----------------------------------------------------------------- */
   function initTranscript() {
-    const searchInput = $("#transcriptSearch");
-    searchInput.addEventListener(
-      "input",
-      debounce((e) => paintTranscriptBody(e.target.value), 150)
-    );
+    
+    const handleSearch = debounce((val) => {
+      if (typeof window.paintTranscriptBody === 'function') {
+        window.paintTranscriptBody(val);
+      }
+    }, 150);
 
-    $("#copyTranscriptBtn").addEventListener("click", async () => {
-      if (!state.lesson) return;
-      await copyToClipboard(state.lesson.transcriptText);
-      showToast("Transcript copied to clipboard.", "success");
+    document.addEventListener("input", (e) => {
+      if (e.target && e.target.id === "transcriptSearch") {
+        handleSearch(e.target.value);
+      }
     });
 
-    $("#copySummaryBtn").addEventListener("click", async () => {
-      if (!state.lesson) return;
-      await copyToClipboard(state.lesson.summary);
-      showToast("Summary copied to clipboard.", "success");
-    });
+    document.addEventListener("click", async (e) => {
+      
+      // Copy Transcript Button
+      if (e.target.closest("#copyTranscriptBtn")) {
+        if (!state.lesson) return;
+        await copyToClipboard(state.lesson.transcriptText);
+        if (typeof showToast === 'function') showToast("Transcript copied to clipboard.", "success");
+        return;
+      }
 
-    $("#toggleSummaryBtn").addEventListener("click", () => {
-      const card = $("#summaryContent");
-      const expanded = card.classList.toggle("is-expanded");
-      $("#toggleSummaryBtn").setAttribute("aria-expanded", String(expanded));
-      $("#toggleSummaryBtn").innerHTML = expanded ? `${ICONS.chevron} Collapse` : `${ICONS.chevron} Expand`;
+      if (e.target.closest("#copySummaryBtn")) {
+        if (!state.lesson) return;
+        await copyToClipboard(state.lesson.summary);
+        if (typeof showToast === 'function') showToast("Summary copied to clipboard.", "success");
+        return;
+      }
+
+      const toggleBtn = e.target.closest("#toggleSummaryBtn");
+      if (toggleBtn) {
+        const card = document.querySelector("#summaryContent");
+        if (card) {
+          const expanded = card.classList.toggle("is-expanded");
+          toggleBtn.setAttribute("aria-expanded", String(expanded));
+          
+          const chevronIcon = (typeof ICONS !== 'undefined' && ICONS.chevron) ? ICONS.chevron : '';
+          toggleBtn.innerHTML = expanded ? `${chevronIcon} Collapse` : `${chevronIcon} Expand`;
+        }
+        return;
+      }
+      
     });
   }
 
@@ -50,3 +70,7 @@
       document.body.removeChild(ta);
     }
   }
+
+  // গ্লোবাল ফাংশন
+  window.initTranscript = initTranscript;
+  window.copyToClipboard = copyToClipboard;

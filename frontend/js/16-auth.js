@@ -1,125 +1,112 @@
-// LUMEN — AI Lesson Assistant
-// Section 16: AUTHENTICATION & HISTORY
-
 (function () {
   'use strict';
 
   let currentMode = 'login'; 
-  let googleInitialized = false;
 
   function initAuth() {
-    const modal = $("#authModal");
-    const closeBtn = $("#closeAuthBtn");
-    const form = $("#authForm");
-    
-    $("#profileBtn").addEventListener("click", () => {
-      if (!localStorage.getItem("lumen_token")) {
-        modal.hidden = false;
-        if (typeof closeDropdowns === 'function') closeDropdowns(); 
-      }
-    });
-
-    closeBtn.addEventListener("click", () => modal.hidden = true);
-    $("#tabLogin").addEventListener("click", () => switchMode('login'));
-    $("#tabRegister").addEventListener("click", () => switchMode('register'));
-    form.addEventListener("submit", handleEmailAuth);
-
-    const oldSignOut = $("#signOutBtn");
-    const newSignOut = oldSignOut.cloneNode(true);
-    oldSignOut.parentNode.replaceChild(newSignOut, oldSignOut);
-
-    newSignOut.addEventListener("click", () => {
-      localStorage.removeItem("lumen_token");
-      localStorage.removeItem("lumen_user");
-      checkAuthState();
-      showToast("Logged out", "info");
-      if (typeof closeDropdowns === 'function') closeDropdowns();
-    });
+    const form = document.getElementById("authForm");
+    if (form) {
+      form.addEventListener("submit", handleEmailAuth);
+    }
 
     checkAuthState();
-    
-    // Initialize Google Auth with proper error handling
     initGoogleAuth();
+    
+    document.addEventListener("click", (e) => {
+      if (e.target.closest("#profileBtn")) {
+        if (!localStorage.getItem("lumen_token")) {
+          const modal = document.getElementById("authModal");
+          if (modal) modal.hidden = false;
+          if (typeof closeDropdowns === 'function') closeDropdowns();
+        }
+        return;
+      }
+
+      if (e.target.closest("#signOutBtn")) {
+        localStorage.removeItem("lumen_token");
+        localStorage.removeItem("lumen_user");
+        checkAuthState();
+        
+        if (typeof showToast === 'function') showToast("Logged out", "info");
+        if (typeof closeDropdowns === 'function') closeDropdowns();
+        if (typeof setActiveView === 'function') setActiveView("dashboard");
+        return;
+      }
+
+      if (e.target.closest("#closeAuthBtn")) {
+        const modal = document.getElementById("authModal");
+        if (modal) modal.hidden = true;
+        return;
+      }
+
+      if (e.target.closest("#tabLogin")) {
+        switchMode('login');
+        return;
+      }
+      if (e.target.closest("#tabRegister")) {
+        switchMode('register');
+        return;
+      }
+      
+      const historyBtn = e.target.closest(".nav-item--history");
+      if (historyBtn && !historyBtn.disabled) {
+        const sessionId = historyBtn.dataset.session;
+        if (sessionId) {
+          loadSavedLesson(sessionId);
+        }
+      }
+    });
   }
 
   function initGoogleAuth() {
-    // Don't initialize multiple times
-    if (googleInitialized) return;
-    
-    // Check if Google library is loaded
-    if (!window.google || !window.google.accounts) {
-      console.warn('Google Sign-In library not loaded yet, retrying...');
-      setTimeout(initGoogleAuth, 500);
-      return;
-    }
-
-    try {
-      // Get the current origin to verify
-      const currentOrigin = window.location.origin;
-      console.log('Current Origin:', currentOrigin);
-      console.log('Expected origins: http://127.0.0.1:8000, http://localhost:8000');
-      
-      // CRITICAL: Make sure this matches your Google Cloud Console configuration
-      const clientId = "116809433079-fnqab7j5nu6t5q4t3mm5fm3oc9dcrid5.apps.googleusercontent.com";
-      
-      // Initialize Google Sign-In
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: handleGoogleResponse,
-        cancel_on_tap_outside: false,
-        // Force popup mode for local development
-        ux_mode: 'popup',
-        // Add context for better UX
-        context: 'signin',
-        // Disable auto prompt to avoid issues
-        auto_select: false,
-        // For debugging
-        itp_support: true
-      });
-
-      // Render the button
-      const container = document.getElementById("googleButtonContainer");
-      if (container) {
-        google.accounts.id.renderButton(
-          container,
-          { 
-            theme: "outline", 
-            size: "large", 
-            width: 300,
-            type: 'standard',
-            shape: 'rectangular',
-            text: 'signin_with',
-            logo_alignment: 'left'
-          }
-        );
-        googleInitialized = true;
-        console.log('Google Sign-In initialized successfully');
-      } else {
-        console.error('Google button container not found');
+    const checkGoogle = setInterval(() => {
+      if (window.google && window.google.accounts) {
+        clearInterval(checkGoogle);
+        google.accounts.id.initialize({
+          client_id: "116809433079-fnqab7j5nu6t5q4t3mm5fm3oc9dcrid5.apps.googleusercontent.com", 
+          callback: handleGoogleResponse
+        });
+        const btnContainer = document.getElementById("googleButtonContainer");
+        if (btnContainer) {
+          google.accounts.id.renderButton(
+            btnContainer,
+            { theme: "outline", size: "large", width: 300 } 
+          );
+        }
       }
-    } catch (error) {
-      console.error('Failed to initialize Google Sign-In:', error);
-    }
+    }, 100); 
   }
 
   function switchMode(mode) {
     currentMode = mode;
-    $("#tabLogin").classList.toggle("is-active", mode === 'login');
-    $("#tabRegister").classList.toggle("is-active", mode === 'register');
-    $("#nameField").hidden = mode === 'login';
-    $("#authTitle").textContent = mode === 'login' ? 'Welcome Back' : 'Create Account';
-    $("#authSubmit").textContent = mode === 'login' ? 'Log In' : 'Register';
-    $("#authError").hidden = true;
+    const tabLogin = document.getElementById("tabLogin");
+    const tabRegister = document.getElementById("tabRegister");
+    const nameField = document.getElementById("nameField");
+    const authTitle = document.getElementById("authTitle");
+    const authSubmit = document.getElementById("authSubmit");
+    const authError = document.getElementById("authError");
+
+    if (tabLogin) tabLogin.classList.toggle("is-active", mode === 'login');
+    if (tabRegister) tabRegister.classList.toggle("is-active", mode === 'register');
+    if (nameField) nameField.hidden = mode === 'login';
+    if (authTitle) authTitle.textContent = mode === 'login' ? 'Welcome Back' : 'Create Account';
+    if (authSubmit) authSubmit.textContent = mode === 'login' ? 'Log In' : 'Register';
+    if (authError) authError.hidden = true;
   }
 
   async function handleEmailAuth(e) {
     e.preventDefault();
     const endpoint = currentMode === 'login' ? '/auth/login' : '/auth/register';
     
+    const emailEl = document.getElementById("authEmail");
+    const passEl = document.getElementById("authPassword");
+    const nameEl = document.getElementById("authName");
+    const errorEl = document.getElementById("authError");
+    
     const payload = {
-      email: $("#authEmail").value,
-      password: $("#authPassword").value,
-      name: currentMode === 'register' ? $("#authName").value : undefined
+      email: emailEl ? emailEl.value : "",
+      password: passEl ? passEl.value : "",
+      name: (currentMode === 'register' && nameEl) ? nameEl.value : undefined
     };
 
     try {
@@ -134,49 +121,43 @@
       
       completeLogin(data);
     } catch (err) {
-      $("#authError").textContent = err.message;
-      $("#authError").hidden = false;
+      if (errorEl) {
+        errorEl.textContent = err.message;
+        errorEl.hidden = false;
+      }
     }
   }
 
   async function handleGoogleResponse(response) {
+    const errorEl = document.getElementById("authError");
     try {
-      console.log('Google response received:', response);
-      
-      // Validate the response
-      if (!response || !response.credential) {
-        throw new Error('Invalid Google response');
-      }
-
       const res = await fetch(`${state.apiBase}/auth/google`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: response.credential })
       });
       
       const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.detail || "Google authentication failed");
-      }
+      if (!res.ok) throw new Error("Google authentication failed");
       
       completeLogin(data);
     } catch (err) {
-      console.error('Google login error:', err);
-      $("#authError").textContent = err.message || "Google authentication failed. Please try again.";
-      $("#authError").hidden = false;
+      if (errorEl) {
+        errorEl.textContent = err.message;
+        errorEl.hidden = false;
+      }
     }
   }
 
   function completeLogin(data) {
     localStorage.setItem("lumen_token", data.token);
     localStorage.setItem("lumen_user", JSON.stringify({ name: data.name, email: data.email }));
-    $("#authModal").hidden = true;
-    $("#authForm").reset();
-    showToast("Logged in successfully", "success");
+    
+    const modal = document.getElementById("authModal");
+    const form = document.getElementById("authForm");
+    if (modal) modal.hidden = true;
+    if (typeof showToast === 'function') showToast("Logged in successfully", "success");
+    if (form) form.reset();
     checkAuthState();
   }
 
@@ -184,25 +165,24 @@
     const token = localStorage.getItem("lumen_token");
     const userStr = localStorage.getItem("lumen_user");
     
+    const nameEls = document.querySelectorAll(".dropdown-panel__name");
+    const roleEls = document.querySelectorAll(".dropdown-panel__role");
+    const avatarEls = document.querySelectorAll(".avatar");
+    const historyList = document.getElementById("sidebarHistoryList");
+    
     if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        $(".dropdown-panel__name").textContent = user.name || user.email;
-        $(".dropdown-panel__role").textContent = "Logged in";
-        $(".avatar").textContent = user.name ? user.name.charAt(0).toUpperCase() : "@";
-        fetchHistory();
-      } catch (e) {
-        console.error('Error parsing user data:', e);
-        // Clear invalid data
-        localStorage.removeItem("lumen_token");
-        localStorage.removeItem("lumen_user");
-        checkAuthState();
-      }
+      const user = JSON.parse(userStr);
+      nameEls.forEach(el => el.textContent = user.name || user.email);
+      roleEls.forEach(el => el.textContent = "Logged in");
+      avatarEls.forEach(el => el.textContent = user.name ? user.name.charAt(0).toUpperCase() : "@");
+      fetchHistory();
     } else {
-      $(".dropdown-panel__name").textContent = "Guest Account";
-      $(".dropdown-panel__role").textContent = "Log in to save history";
-      $(".avatar").textContent = "@";
-      $("#sidebarHistoryList").innerHTML = `<li><button class="nav-item nav-item--history" disabled>Log in to save history</button></li>`;
+      nameEls.forEach(el => el.textContent = "Guest Account");
+      roleEls.forEach(el => el.textContent = "Log in to save history");
+      avatarEls.forEach(el => el.textContent = "@");
+      if (historyList) {
+        historyList.innerHTML = `<li><button class="nav-item nav-item--history" disabled>Log in to save history</button></li>`;
+      }
     }
   }
 
@@ -212,43 +192,42 @@
 
     try {
       const res = await fetch(`${state.apiBase}/history`, {
-        headers: { 
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+        headers: { "Authorization": `Bearer ${token}` }
       });
 
       if (res.status === 401) {
         localStorage.removeItem("lumen_token");
         localStorage.removeItem("lumen_user");
         checkAuthState();
-        showToast("Session expired. Please log in again.", "error");
+        if (typeof showToast === 'function') showToast("Session expired. Please log in again.", "error");
         return;
       }
 
       if (res.ok) {
         const data = await res.json();
-        if (data && data.history) {
-          renderHistory(data.history);
-        }
+        renderHistory(data.history);
       }
     } catch (e) {
-      console.error("Failed to fetch history:", e);
+      console.error("Failed to fetch history");
     }
   }
 
   function renderHistory(historyItems) {
-    const list = $("#sidebarHistoryList");
+    const list = document.getElementById("sidebarHistoryList");
+    if (!list) return;
+    
     if (!historyItems || historyItems.length === 0) {
       list.innerHTML = `<li><button class="nav-item nav-item--history" disabled>No recent lessons</button></li>`;
       return;
     }
 
+    const docIcon = (typeof ICONS !== 'undefined' && ICONS.doc) ? ICONS.doc : '📄';
+
     list.innerHTML = historyItems.map(item => `
       <li>
-        <button class="nav-item nav-item--history" data-session="${item.session_id || item.id}">
-          <span class="nav-item__icon">{{icon:doc}}</span>
-          <span class="nav-item__label">${escapeHtml(item.title || 'Untitled Lesson')}</span>
+        <button class="nav-item nav-item--history" data-session="${item.session_id}">
+          <span class="nav-item__icon">${docIcon}</span>
+          <span class="nav-item__label">${typeof escapeHtml === 'function' ? escapeHtml(item.title) : item.title}</span>
         </button>
       </li>
     `).join("");
@@ -256,68 +235,55 @@
     if (typeof inflateIcons === 'function') inflateIcons();
   }
 
-  $("#sidebarHistoryList").addEventListener("click", async (e) => {
-    const btn = e.target.closest(".nav-item--history");
-    if (!btn || btn.disabled) return;
-    
-    const sessionId = btn.dataset.session;
-    if (sessionId) {
-      await loadSavedLesson(sessionId);
-    }
-  });
-
   async function loadSavedLesson(sessionId) {
     if (typeof updateSidebarChip === 'function') updateSidebarChip("busy", "Loading lesson...");
     
     try {
       const token = localStorage.getItem("lumen_token");
-      if (!token) {
-        showToast("Please log in to view saved lessons", "error");
-        return;
-      }
-
       const res = await fetch(`${state.apiBase}/lesson/${sessionId}`, {
-        headers: { 
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+        headers: { "Authorization": `Bearer ${token}` }
       });
       
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.detail || "Could not load lesson data");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Could not load lesson data");
       }
       
-      const data = await res.json();
+      let data = await res.json();
       
-      if (typeof applyLessonData === 'function') {
-        applyLessonData(data, data.title || "Saved Lesson");
+      if (typeof data.key_points === 'string') {
+        try { data.key_points = JSON.parse(data.key_points); } catch(e) { data.key_points = [data.key_points]; }
+      }
+      if (typeof data.questions === 'string') {
+        try { data.questions = JSON.parse(data.questions); } catch(e) { data.questions = [data.questions]; }
+      }
+      if (!data.session_id) {
+        data.session_id = sessionId;
       }
       
-      if (typeof updateSidebarChip === 'function') updateSidebarChip("ready", data.title || "Lesson loaded");
+      if (typeof window.applyLessonData === 'function') {
+        window.applyLessonData(data, "Saved Lesson");
+      }
+      
+      if (typeof updateSidebarChip === 'function') updateSidebarChip("ready", data.title || "Lesson");
       if (typeof setActiveView === 'function') setActiveView("dashboard");
-      
-      showToast("Lesson loaded successfully", "success");
+      if (typeof showToast === 'function') showToast("Lesson loaded successfully", "success");
       
     } catch (err) {
-      console.error('Error loading lesson:', err);
-      showToast(err.message || "Failed to load the selected lesson.", "error");
+      console.error("Load Lesson Error:", err);
+      if (typeof showToast === 'function') showToast(err.message || "Failed to load the selected lesson.", "error");
       if (typeof updateSidebarChip === 'function') updateSidebarChip("error", "Load failed");
     }
   }
 
-  // Patch fetch to include auth token
   if (!window.__isFetchPatched) {
     const originalFetch = window.fetch;
     window.fetch = async function(url, options = {}) {
       const token = localStorage.getItem("lumen_token");
       
-      // Only add token for API calls
-      if (token && typeof state !== 'undefined' && state.apiBase && String(url).startsWith(state.apiBase)) {
+      if (token && typeof state !== 'undefined' && String(url).startsWith(state.apiBase)) {
         options.headers = new Headers(options.headers || {});
-        if (!options.headers.has('Authorization')) {
-          options.headers.set("Authorization", `Bearer ${token}`);
-        }
+        options.headers.set("Authorization", `Bearer ${token}`);
       }
       
       return originalFetch(url, options);
@@ -325,34 +291,6 @@
     window.__isFetchPatched = true;
   }
 
-  // Retry Google initialization if it fails
-  let retryCount = 0;
-  const maxRetries = 5;
-  
-  function retryGoogleInit() {
-    if (!googleInitialized && retryCount < maxRetries) {
-      retryCount++;
-      console.log(`Retrying Google initialization (attempt ${retryCount}/${maxRetries})...`);
-      setTimeout(initGoogleAuth, 1000 * retryCount);
-    }
-  }
-
-  // Listen for Google library load
-  window.addEventListener('load', function() {
-    // If not initialized after 2 seconds, retry
-    setTimeout(() => {
-      if (!googleInitialized) {
-        retryGoogleInit();
-      }
-    }, 2000);
-  });
-
+  window.fetchHistory = fetchHistory;
   document.addEventListener("DOMContentLoaded", initAuth);
-  
-  // Export for debugging
-  window.__authHelpers = {
-    initGoogleAuth,
-    retryGoogleInit,
-    googleInitialized: () => googleInitialized
-  };
 })();

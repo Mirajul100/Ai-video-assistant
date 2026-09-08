@@ -1,57 +1,60 @@
-// LUMEN — AI Lesson Assistant
-// Section 11: ASK AI (CHAT)
-
-  /* -----------------------------------------------------------------
-     11. ASK AI (CHAT)
-  ----------------------------------------------------------------- */
-  function enableChatInput(enabled) {
-    $("#chatInput").disabled = !enabled;
-    $("#chatSendBtn").disabled = !enabled;
+function enableChatInput(enabled) {
+    const input = document.getElementById("chatInput");
+    const btn = document.getElementById("chatSendBtn");
+    if (input) input.disabled = !enabled;
+    if (btn) btn.disabled = !enabled;
   }
 
   function renderChatEmpty() {
-    $("#chatMessages").innerHTML = "";
+    const container = document.getElementById("chatMessages");
+    if (!container) return;
+    container.innerHTML = "";
+    
     const empty = document.createElement("div");
     empty.className = "chat-empty";
     empty.id = "chatEmptyState";
-    empty.innerHTML = `<span class="chat-empty__icon">${ICONS.chat}</span>
-      <p>Ask a question about "<strong>${escapeHtml(state.lesson ? state.lesson.title : "this lesson")}</strong>" and I'll answer using only the transcript.</p>`;
-    $("#chatMessages").appendChild(empty);
+    
+    const chatIcon = (typeof ICONS !== 'undefined' && ICONS.chat) ? ICONS.chat : '💬';
+    const titleText = (typeof state !== 'undefined' && state.lesson) ? state.lesson.title : "this lesson";
+    
+    empty.innerHTML = `<span class="chat-empty__icon">${chatIcon}</span>
+      <p>Ask a question about "<strong>${typeof escapeHtml === 'function' ? escapeHtml(titleText) : titleText}</strong>" and I'll answer using only the transcript.</p>`;
+    container.appendChild(empty);
   }
 
   function appendMessage(role, text) {
-    const emptyState = $("#chatEmptyState");
+    const emptyState = document.getElementById("chatEmptyState");
     if (emptyState) emptyState.remove();
 
     const wrap = document.createElement("div");
     wrap.className = `message message--${role}`;
 
-    const avatar =
-      role === "user"
-        ? `<span class="message__avatar">You</span>`
-        : `<span class="message__avatar">${ICONS.sparkle}</span>`;
+    const sparkleIcon = (typeof ICONS !== 'undefined' && ICONS.sparkle) ? ICONS.sparkle : '✨';
+    const copyIcon = (typeof ICONS !== 'undefined' && ICONS.copy) ? ICONS.copy : '📋';
+
+    const avatar = role === "user" 
+      ? `<span class="message__avatar">You</span>` 
+      : `<span class="message__avatar">${sparkleIcon}</span>`;
 
     const bodyId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     
-    // FIX: Added type="button" to the copy button to prevent form submission behavior
     wrap.innerHTML = `
       ${avatar}
       <div class="message__body">
         <div class="message__bubble" id="${bodyId}"></div>
-        ${role === "ai" ? `<div class="message__actions"><button type="button" class="message__copy-btn" data-target="${bodyId}">${ICONS.copy} Copy</button></div>` : ""}
+        ${role === "ai" ? `<div class="message__actions"><button type="button" class="message__copy-btn" data-target="${bodyId}">${copyIcon} Copy</button></div>` : ""}
       </div>`;
       
-    // set text via textContent to avoid HTML injection, preserving line breaks via CSS white-space
     wrap.querySelector(`#${bodyId}`).textContent = text;
-
-    $("#chatMessages").appendChild(wrap);
-    $("#chatMessages").scrollTo({ top: $("#chatMessages").scrollHeight, behavior: "smooth" });
+    const chatMessages = document.getElementById("chatMessages");
+    chatMessages.appendChild(wrap);
+    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: "smooth" });
 
     if (role === "ai") {
       wrap.querySelector(".message__copy-btn").addEventListener("click", async (e) => {
         e.preventDefault();
-        await copyToClipboard(text);
-        showToast("Answer copied.", "success");
+        if (typeof copyToClipboard === 'function') await copyToClipboard(text);
+        if (typeof showToast === 'function') showToast("Answer copied.", "success");
       });
     }
     return wrap;
@@ -61,63 +64,64 @@
     const wrap = document.createElement("div");
     wrap.className = "message message--ai";
     wrap.id = "typingIndicatorMsg";
-    wrap.innerHTML = `<span class="message__avatar">${ICONS.sparkle}</span>
+    const sparkleIcon = (typeof ICONS !== 'undefined' && ICONS.sparkle) ? ICONS.sparkle : '✨';
+    wrap.innerHTML = `<span class="message__avatar">${sparkleIcon}</span>
       <div class="message__body">
         <div class="typing-indicator"><span></span><span></span><span></span></div>
       </div>`;
-    $("#chatMessages").appendChild(wrap);
-    $("#chatMessages").scrollTo({ top: $("#chatMessages").scrollHeight, behavior: "smooth" });
+    const chatMessages = document.getElementById("chatMessages");
+    chatMessages.appendChild(wrap);
+    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: "smooth" });
   }
   
   function hideTypingIndicator() {
-    const el = $("#typingIndicatorMsg");
+    const el = document.getElementById("typingIndicatorMsg");
     if (el) el.remove();
   }
 
   async function sendChatMessage(question) {
     const text = (question || "").trim();
-    if (!text || state.chat.busy || !state.lesson) return;
+    if (!text || (typeof state !== 'undefined' && (state.chat.busy || !state.lesson))) return;
 
     appendMessage("user", text);
-    state.chat.busy = true;
+    if (typeof state !== 'undefined') state.chat.busy = true;
     enableChatInput(false);
-    $("#chatInput").value = "";
+    
+    const input = document.getElementById("chatInput");
+    if (input) input.value = "";
     autoResizeChatInput();
     showTypingIndicator();
 
     try {
-      if (state.isDemo) {
-        // No real backend session exists for the sample lesson -- keep the
-        // interaction honest instead of pretending to answer from a transcript.
+      if (typeof state !== 'undefined' && state.isDemo) {
         await new Promise((r) => setTimeout(r, 650));
         hideTypingIndicator();
-        appendMessage(
-          "ai",
-          `This is a sample lesson, so I can't generate a real answer to "${text}." Process an actual YouTube video and I'll answer using only that video's transcript.`
-        );
+        appendMessage("ai", `This is a sample lesson, so I can't generate a real answer to "${text}." Process an actual YouTube video and I'll answer using only that video's transcript.`);
       } else {
         const answer = await callAskAPI(text);
         hideTypingIndicator();
         appendMessage("ai", answer || "I couldn't find anything about that in the lesson transcript.");
       }
-      if (state.currentView !== "ask-ai") $("#chatUnreadDot").hidden = false;
+      
+      const unreadDot = document.getElementById("chatUnreadDot");
+      if (typeof state !== 'undefined' && state.currentView !== "ask-ai" && unreadDot) unreadDot.hidden = false;
     } catch (err) {
       hideTypingIndicator();
       const message = (err && err.friendly) || "The assistant couldn't answer that. Try asking again.";
       const errWrap = appendMessage("error", message);
       errWrap.classList.add("message--error");
     } finally {
-      state.chat.busy = false;
+      if (typeof state !== 'undefined') state.chat.busy = false;
       enableChatInput(true);
-      $("#chatInput").focus();
+      const focusInput = document.getElementById("chatInput");
+      if (focusInput) focusInput.focus();
     }
   }
 
   async function callAskAPI(question) {
-    if (!state.sessionId) {
+    if (typeof state === 'undefined' || !state.sessionId) {
       throw { friendly: "Process a video first, then ask questions about it." };
     }
-
     let response;
     try {
       response = await fetch(`${state.apiBase}/ask`, {
@@ -128,14 +132,12 @@
     } catch (networkErr) {
       throw { friendly: "Can't reach the server right now. Check your connection and try again." };
     }
-
     if (response.status === 404) {
       throw { friendly: "This lesson's session has expired on the server. Process the video again." };
     }
     if (!response.ok) {
       throw { friendly: "The assistant couldn't answer that. Try asking again." };
     }
-
     let data;
     try {
       data = await response.json();
@@ -146,31 +148,69 @@
   }
 
   function autoResizeChatInput() {
-    const el = $("#chatInput");
+    const el = document.getElementById("chatInput");
+    if (!el) return;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 140) + "px";
   }
 
   function initChat() {
-    const form = $("#chatForm");
-    const input = $("#chatInput");
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      sendChatMessage(input.value);
-    });
-
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+    document.addEventListener("submit", (e) => {
+      if (e.target && e.target.id === "chatForm") {
         e.preventDefault();
-        sendChatMessage(input.value);
+        const input = document.getElementById("chatInput");
+        if (input) sendChatMessage(input.value);
       }
     });
-    input.addEventListener("input", autoResizeChatInput);
 
-    $("#clearChatBtn").addEventListener("click", () => {
-      state.chat.messages = [];
-      renderChatEmpty();
-      showToast("Chat cleared.", "info");
+    document.addEventListener("keydown", (e) => {
+      if (e.target && e.target.id === "chatInput") {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendChatMessage(e.target.value);
+        }
+      }
+    });
+
+    document.addEventListener("input", (e) => {
+      if (e.target && e.target.id === "chatInput") {
+        autoResizeChatInput();
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      // ১. Clear Chat Button
+      if (e.target.closest("#clearChatBtn")) {
+        if (typeof state !== 'undefined' && state.chat) state.chat.messages = [];
+        renderChatEmpty();
+        if (typeof showToast === 'function') showToast("Chat cleared.", "info");
+        return;
+      }
+
+      // ২. Question Item Click (Event Delegation)
+      const qBtn = e.target.closest(".question-item");
+      if (qBtn) {
+        e.preventDefault();
+        if (typeof window.setActiveView === 'function') {
+          window.setActiveView("ask-ai");
+        }
+        
+        const idx = qBtn.dataset.index;
+        if (typeof state !== 'undefined' && state.lesson && state.lesson.questions) {
+          const questionText = state.lesson.questions[idx];
+          if (questionText) {
+            setTimeout(() => {
+              sendChatMessage(questionText);
+            }, 150);
+          }
+        }
+      }
     });
   }
+
+  // Global Exports
+  window.enableChatInput = enableChatInput;
+  window.renderChatEmpty = renderChatEmpty;
+  window.appendMessage = appendMessage;
+  window.sendChatMessage = sendChatMessage;
+  window.initChat = initChat;

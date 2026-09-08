@@ -75,7 +75,6 @@ def get_lesson(session_id):
     return None
 
 def get_lesson_by_id(session_id: str, user_id: str):
-    import sqlite3
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""

@@ -71,7 +71,7 @@
       </ul>
     </nav>
 
-    <!-- NEW: Active Lesson Chip (Restored for JS Compatibility) -->
+    <!-- FIX: Active Lesson Chip -->
     <div class="sidebar__current" id="sidebarLessonChip" hidden>
       <div class="lesson-chip">
         <span class="lesson-chip__dot" id="sidebarStatusDot"></span>
@@ -150,7 +150,7 @@
               <h2 class="hero__title">Learn Smarter with AI</h2>
               <p class="hero__subtitle">Paste a YouTube lesson link or upload a document to turn it into a clear transcript, summary, key points, and interactive Q&amp;A.</p>
               <div class="hero__actions">
-                <button class="btn btn--primary" id="heroAddVideoBtn">{{icon:video}} Add content</button>
+                <button class="btn btn--primary" id="heroAddVideoBtn" data-view="upload">{{icon:pdfvideo}} Add content</button>
               </div>
               <button class="btn-text" id="heroDemoBtn">Or try a sample lesson →</button>
             </div>
@@ -202,7 +202,7 @@
                   <h2 class="lesson-overview__title" id="overviewTitle">Lesson title</h2>
                 </div>
               </div>
-              <button class="btn btn--outline" id="newLessonBtn">{{icon:video}} Process another file</button>
+              <button class="btn btn--outline" id="newLessonBtn" data-view="upload">{{icon:pdfvideo}} Process another content</button>
             </div>
             <div class="stat-grid">
               <div class="stat">
@@ -393,7 +393,7 @@
           <span class="empty-state__icon">{{icon:layers}}</span>
           <h2>No summary yet</h2>
           <p>Add content and Lumen will summarize it for you.</p>
-          <button class="btn btn--primary" data-view="upload">Add content</button>
+          <button class="btn btn--primary"  data-view="upload">Add content</button>
         </div>
 
         <div id="summarySkeleton" hidden>
@@ -449,7 +449,7 @@
         </div>
 
         <p class="view-intro" id="questionsIntro" hidden>Tap a question to ask the AI assistant about it.</p>
-        <ul class="questions-list" id="questionsList" hidden></ul>
+        <ul class="questions-list" id="questionsList" data-view="ask-ai"></ul>
       </section>
 
       <!-- ===================== ASK AI ===================== -->

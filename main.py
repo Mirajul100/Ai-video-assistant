@@ -19,7 +19,8 @@ from core.transcribe_gemini import transcribe_chunks, combine_transcript_text
 from core.summerize import summarize_transcript, generate_title
 from core.extractor import extract_key_points, extract_questions
 from core.reg_engine import build_reg_chain, ask_question as run_ask_question
-from core.data_base import init_db, save_lesson, get_user_history, get_lesson_by_id 
+from core.data_base import init_db, save_lesson, get_user_history, get_lesson_by_id
+from core.vector_store import  create_vector_store, load_vector_store
 from core.auth import auth_router, SECRET_KEY, ALGORITHM
 
 load_dotenv()
@@ -137,14 +138,24 @@ def fetch_lesson(session_id: str, user_id: str = Depends(get_current_user)):
     if not lesson_data:
         raise HTTPException(status_code=404, detail="Lesson not found")
         
-    # Rebuild the ChromaDB/Langchain memory for this old session so AI Chat still works
+    # Rebuild the ChromaDB/Langchain memory for this old session
     if session_id not in sessions:
-        transcript_docs = normalize_documents(lesson_data["transcript"])
-        sessions[session_id] = {
-            "reg_chain": build_reg_chain(transcripts=transcript_docs),
-            "transcript": lesson_data["transcript"]
-        }
-        
+        try:
+            fast_loaded_chain = load_vector_store(session_id)
+            
+            sessions[session_id] = {
+                "reg_chain": fast_loaded_chain,
+                "transcript": lesson_data["transcript"]
+            }
+            
+        except Exception as e:
+            transcript_docs = normalize_documents(lesson_data["transcript"])
+            
+            sessions[session_id] = {
+                "reg_chain": build_reg_chain(transcripts=transcript_docs),
+                "transcript": lesson_data["transcript"]
+            }
+            
     return lesson_data
 # --------------------------------------------------------
 
