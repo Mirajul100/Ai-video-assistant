@@ -89,7 +89,6 @@
       applyLessonData(data, url);
       updateSidebarChip("ready", state.lesson.title);
       pushNotification(`"${state.lesson.title}" is ready to explore.`);
-      showToast("Lesson processed successfully.", "success");
 
       await new Promise((r) => setTimeout(r, 450));
       $("#processingCard").hidden = true;

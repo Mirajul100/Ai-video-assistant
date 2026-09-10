@@ -26,6 +26,8 @@
   font-size: 13.5px;
   animation: toast-in var(--dur-med) var(--ease);
 }
+
+
 .toast--success { border-color: rgba(74, 222, 128, 0.35); }
 .toast--error { border-color: rgba(242, 109, 109, 0.35); }
 .toast__icon { width: 17px; height: 17px; flex-shrink: 0; margin-top: 1px; }

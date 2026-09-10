@@ -10,6 +10,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Google Sign-In Script -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- NEW: MathJax Configuration for LaTeX rendering -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    }
+  };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
@@ -575,5 +585,7 @@
 <script src="/static/js/14-init.js"></script>
 <script src="/static/js/15-document-process.js"></script>
 <script src="/static/js/16-auth.js"></script>
+<script src="/static/js/17-recent-lesson.js"></script>
+<script src="/static/js/18-math-jax.js"></script>
 </body>
 </html>

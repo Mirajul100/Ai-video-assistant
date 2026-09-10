@@ -77,6 +77,10 @@
 }
 
 .processing-card { margin-top: 18px; }
+
+.processing-card[hidden] {
+  display: none !important;
+}
 .processing-card__header {
   display: flex;
   align-items: baseline;

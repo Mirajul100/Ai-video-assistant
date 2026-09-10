@@ -27,9 +27,9 @@
         localStorage.removeItem("lumen_user");
         checkAuthState();
         
-        if (typeof showToast === 'function') showToast("Logged out", "info");
         if (typeof closeDropdowns === 'function') closeDropdowns();
         if (typeof setActiveView === 'function') setActiveView("dashboard");
+        location.reload();
         return;
       }
 
@@ -43,17 +43,10 @@
         switchMode('login');
         return;
       }
+      
       if (e.target.closest("#tabRegister")) {
         switchMode('register');
         return;
-      }
-      
-      const historyBtn = e.target.closest(".nav-item--history");
-      if (historyBtn && !historyBtn.disabled) {
-        const sessionId = historyBtn.dataset.session;
-        if (sessionId) {
-          loadSavedLesson(sessionId);
-        }
       }
     });
   }
@@ -156,7 +149,6 @@
     const modal = document.getElementById("authModal");
     const form = document.getElementById("authForm");
     if (modal) modal.hidden = true;
-    if (typeof showToast === 'function') showToast("Logged in successfully", "success");
     if (form) form.reset();
     checkAuthState();
   }
@@ -175,7 +167,11 @@
       nameEls.forEach(el => el.textContent = user.name || user.email);
       roleEls.forEach(el => el.textContent = "Logged in");
       avatarEls.forEach(el => el.textContent = user.name ? user.name.charAt(0).toUpperCase() : "@");
-      fetchHistory();
+      
+      // Call fetchHistory from the history module if it exists
+      if (typeof window.fetchHistory === 'function') {
+        window.fetchHistory();
+      }
     } else {
       nameEls.forEach(el => el.textContent = "Guest Account");
       roleEls.forEach(el => el.textContent = "Log in to save history");
@@ -183,96 +179,6 @@
       if (historyList) {
         historyList.innerHTML = `<li><button class="nav-item nav-item--history" disabled>Log in to save history</button></li>`;
       }
-    }
-  }
-
-  async function fetchHistory() {
-    const token = localStorage.getItem("lumen_token");
-    if (!token) return;
-
-    try {
-      const res = await fetch(`${state.apiBase}/history`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-
-      if (res.status === 401) {
-        localStorage.removeItem("lumen_token");
-        localStorage.removeItem("lumen_user");
-        checkAuthState();
-        if (typeof showToast === 'function') showToast("Session expired. Please log in again.", "error");
-        return;
-      }
-
-      if (res.ok) {
-        const data = await res.json();
-        renderHistory(data.history);
-      }
-    } catch (e) {
-      console.error("Failed to fetch history");
-    }
-  }
-
-  function renderHistory(historyItems) {
-    const list = document.getElementById("sidebarHistoryList");
-    if (!list) return;
-    
-    if (!historyItems || historyItems.length === 0) {
-      list.innerHTML = `<li><button class="nav-item nav-item--history" disabled>No recent lessons</button></li>`;
-      return;
-    }
-
-    const docIcon = (typeof ICONS !== 'undefined' && ICONS.doc) ? ICONS.doc : '📄';
-
-    list.innerHTML = historyItems.map(item => `
-      <li>
-        <button class="nav-item nav-item--history" data-session="${item.session_id}">
-          <span class="nav-item__icon">${docIcon}</span>
-          <span class="nav-item__label">${typeof escapeHtml === 'function' ? escapeHtml(item.title) : item.title}</span>
-        </button>
-      </li>
-    `).join("");
-    
-    if (typeof inflateIcons === 'function') inflateIcons();
-  }
-
-  async function loadSavedLesson(sessionId) {
-    if (typeof updateSidebarChip === 'function') updateSidebarChip("busy", "Loading lesson...");
-    
-    try {
-      const token = localStorage.getItem("lumen_token");
-      const res = await fetch(`${state.apiBase}/lesson/${sessionId}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || "Could not load lesson data");
-      }
-      
-      let data = await res.json();
-      
-      if (typeof data.key_points === 'string') {
-        try { data.key_points = JSON.parse(data.key_points); } catch(e) { data.key_points = [data.key_points]; }
-      }
-      if (typeof data.questions === 'string') {
-        try { data.questions = JSON.parse(data.questions); } catch(e) { data.questions = [data.questions]; }
-      }
-      if (!data.session_id) {
-        data.session_id = sessionId;
-      }
-      
-      if (typeof window.applyLessonData === 'function') {
-        window.applyLessonData(data, "Saved Lesson");
-      }
-      
-      if (typeof updateSidebarChip === 'function') updateSidebarChip("ready", data.title || "Lesson");
-      if (typeof setActiveView === 'function') setActiveView("dashboard");
-      if (typeof showToast === 'function') showToast("Lesson loaded successfully", "success");
-      
-    } catch (err) {
-      console.error("Load Lesson Error:", err);
-      if (typeof showToast === 'function') showToast(err.message || "Failed to load the selected lesson.", "error");
-      if (typeof updateSidebarChip === 'function') updateSidebarChip("error", "Load failed");
     }
   }
 
@@ -291,6 +197,6 @@
     window.__isFetchPatched = true;
   }
 
-  window.fetchHistory = fetchHistory;
+  window.checkAuthState = checkAuthState;
   document.addEventListener("DOMContentLoaded", initAuth);
 })();

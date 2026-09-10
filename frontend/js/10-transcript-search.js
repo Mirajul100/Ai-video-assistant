@@ -71,6 +71,5 @@
     }
   }
 
-  // গ্লোবাল ফাংশন
   window.initTranscript = initTranscript;
   window.copyToClipboard = copyToClipboard;

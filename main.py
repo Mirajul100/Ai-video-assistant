@@ -157,8 +157,6 @@ def fetch_lesson(session_id: str, user_id: str = Depends(get_current_user)):
             }
             
     return lesson_data
-# --------------------------------------------------------
-
 
 @app.post("/process", response_model=ProcessResponse)
 def process_video(payload: ProcessRequest, user_id: str = Depends(get_current_user)) -> ProcessResponse:

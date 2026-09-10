@@ -24,7 +24,7 @@
 }
 
 #sidebarHistoryList {
-    max-height: 180px;
+    max-height: 115px;
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 5px;
