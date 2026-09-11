@@ -2,7 +2,6 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Optional
-
 from google import genai
 from dotenv import load_dotenv
 from langchain_core.documents import Document

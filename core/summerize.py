@@ -18,6 +18,7 @@ def get_llm():
         model=MODEL,
         api_key=API_KEY,
         temperature=0.4,
+        max_retries=5
     )
 
 

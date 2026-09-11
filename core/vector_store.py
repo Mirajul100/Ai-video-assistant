@@ -10,11 +10,13 @@ EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 COLLECTION_NAME = "video_transcripts"
 
 def get_embeddings():
-    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME , model_kwargs={"device": "cpu"})
+    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME , 
+                                       model_kwargs={"device": "cpu"} ,
+                                       encode_kwargs={"normalize_embeddings": True})
     return embeddings
 
 def create_vector_store(documents: list[Document]) -> Chroma:
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=300)
     chunks = splitter.split_documents(documents)
     for i, chunk in enumerate(chunks):
         chunk.metadata['chunk_index'] = i
