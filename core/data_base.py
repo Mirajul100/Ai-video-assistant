@@ -19,7 +19,7 @@ def get_db_connection():
     if USE_POSTGRES:
         return psycopg2.connect(DB_URL)
     else:
-        conn = sqlite3.connect("lessons.db")
+        conn = sqlite3.connect("lumen.db")
         conn.row_factory = sqlite3.Row
         return conn
 
