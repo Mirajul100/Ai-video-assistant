@@ -1,6 +1,5 @@
 yt-dlp
 ffmpeg-python
-pydub
 torch
 torchaudio
 langchain
@@ -32,3 +31,5 @@ PyJWT==2.13.0
 bcrypt==3.2.2
 chromadb
 psycopg2-binary==2.9.13
+soundfile
+av
