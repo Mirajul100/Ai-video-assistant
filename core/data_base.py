@@ -2,7 +2,6 @@ import os
 import json
 import sqlite3
 import logging
-from pathlib import Path
 
 try:
     import psycopg2
@@ -14,10 +13,6 @@ except ImportError:
 
 logger = logging.getLogger("Lumen.ai")
 
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = str(BASE_DIR / "lumen.db")
-
 DB_URL = os.getenv("DATABASE_URL")
 USE_POSTGRES = bool(DB_URL and HAS_POSTGRES)
 
@@ -26,7 +21,7 @@ def get_db_connection():
     if USE_POSTGRES:
         return psycopg2.connect(DB_URL)
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect("lumen.db")
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -36,6 +31,17 @@ def init_db():
     cursor = conn.cursor()
 
     if USE_POSTGRES:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT,
+                name TEXT,
+                google_id TEXT UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS lessons (
                 session_id TEXT PRIMARY KEY,
@@ -48,7 +54,19 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
     else:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT,
+                name TEXT,
+                google_id TEXT UNIQUE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS lessons (
                 session_id TEXT PRIMARY KEY,
@@ -63,11 +81,12 @@ def init_db():
         """)
 
     conn.commit()
+
     cursor.close()
     conn.close()
 
-    db_name = "PostgreSQL" if USE_POSTGRES else "SQLite"
-    logger.info(f"{db_name} database initialized successfully")
+    db_name = "Postgres" if USE_POSTGRES else "SQLite"
+    logger.info(f"{db_name} DB Initialized Successfully")
 
 
 def save_lesson(
@@ -82,17 +101,8 @@ def save_lesson(
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    kp_str = (
-        json.dumps(key_points, ensure_ascii=False)
-        if isinstance(key_points, list)
-        else key_points
-    )
-
-    q_str = (
-        json.dumps(questions, ensure_ascii=False)
-        if isinstance(questions, list)
-        else questions
-    )
+    kp_str = json.dumps(key_points) if isinstance(key_points, list) else key_points
+    q_str = json.dumps(questions) if isinstance(questions, list) else questions
 
     if USE_POSTGRES:
         query = """
@@ -121,22 +131,30 @@ def save_lesson(
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """
 
-    cursor.execute(
-        query,
-        (
-            session_id,
-            user_id,
-            title,
-            summary,
-            kp_str,
-            q_str,
-            transcript
+    try:
+        cursor.execute(
+            query,
+            (
+                session_id,
+                user_id,
+                title,
+                summary,
+                kp_str,
+                q_str,
+                transcript
+            )
         )
-    )
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+        conn.commit()
+
+    except Exception:
+        conn.rollback()
+        logger.exception("Failed to save lesson")
+        raise
+
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def get_user_history(user_id):
@@ -153,6 +171,8 @@ def get_user_history(user_id):
         """
 
         cursor.execute(query, (user_id,))
+        rows = cursor.fetchall()
+
     else:
         cursor = conn.cursor()
 
@@ -164,8 +184,7 @@ def get_user_history(user_id):
         """
 
         cursor.execute(query, (user_id,))
-
-    rows = cursor.fetchall()
+        rows = cursor.fetchall()
 
     cursor.close()
     conn.close()
@@ -175,7 +194,11 @@ def get_user_history(user_id):
     for row in rows:
         r = dict(row)
 
-        if USE_POSTGRES and r.get("created_at"):
+        if (
+            USE_POSTGRES
+            and "created_at" in r
+            and r["created_at"]
+        ):
             r["created_at"] = r["created_at"].isoformat()
 
         result.append(r)
