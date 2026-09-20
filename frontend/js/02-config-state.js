@@ -4,7 +4,7 @@
   /* -----------------------------------------------------------------
      2. CONFIG & STATE
   ----------------------------------------------------------------- */
-  const DEFAULT_API_BASE = "http://localhost:8000";
+  const DEFAULT_API_BASE = "https://lumen-ai.ddns.net";
   // Matches youtube.com/watch?v=, youtu.be/, youtube.com/embed/, /shorts/, /live/
   const YOUTUBE_ID_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
   const PROCESSING_STEPS = [
