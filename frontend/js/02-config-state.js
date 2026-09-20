@@ -18,7 +18,7 @@
   ];
 
   const state = {
-    apiBase: localStorage.getItem("lumen_api_base") || DEFAULT_API_BASE,
+    apiBase: DEFAULT_API_BASE,
     currentView: "dashboard",
     videoUrl: null,
     videoId: null, // extracted YouTube ID, used for the thumbnail preview
