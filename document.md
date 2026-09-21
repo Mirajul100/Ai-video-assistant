@@ -4,9 +4,46 @@ Paste a YouTube URL and get a transcript, summary, key points, and an AI Q&A ove
 
 ## Structure
 
-```text
 
-```
+├── Dockerfile
+├── LICENSE
+├── __pycache__
+│   └── main.cpython-314.pyc
+├── core
+│   ├── __pycache__
+│   ├── auth.py
+│   ├── data_base.py
+│   ├── data_base.py.save
+│   ├── extractor.py
+│   ├── reg_engine.py
+│   ├── summerize.py
+│   ├── transcribe_gemini.py
+│   └── vector_store.py
+├── document.md
+├── downloads
+├── example.env
+├── frontend
+│   ├── css
+│   ├── image
+│   ├── index.html
+│   └── js
+├── main.py
+├── requirements.txt
+├── utils
+│   ├── __pycache__
+│   ├── adio_processing.py
+│   └── pdf_upload.py
+├── vector_db
+│   ├── 19fee8ab-9d7a-42d5-8e7f-bd4cfbd05181
+│   └── chroma.sqlite3
+├── venv
+│   ├── bin
+│   ├── include
+│   ├── lib
+│   ├── lib64 -> lib
+│   ├── pyvenv.cfg
+│   └── share
+└── youtube_cookies.txt
 
 ## Requirements
 

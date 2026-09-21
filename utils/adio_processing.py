@@ -1,66 +1,70 @@
-import os
 from pathlib import Path
-
 import av
 import numpy as np
 import soundfile as sf
 import yt_dlp
 
-
-DOWNLOAD_DIR = Path("downloads")
-DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+BASE_DIR = Path(__file__).resolve().parent.parent
+DOWNLOAD_DIR = BASE_DIR / "downloads"
+DOWNLOAD_DIR.mkdir(exist_ok=True)
+COOKIES = BASE_DIR / "youtube_cookies.txt"
+DENO = Path.home() / ".deno/bin/deno"
 
 SAMPLE_RATE = 16000
-CHANNELS = 1
-CHUNK_LENGTH_MINUTES = 10
+CHUNK_MINUTES = 10
 
 
 def download_audio_from_youtube(url: str) -> str:
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "outtmpl": str(DOWNLOAD_DIR / "audio_%(id)s.%(ext)s"),
-        "quiet": True,
-        "noplaylist": True,
-    }
+    if not COOKIES.exists():
+        raise FileNotFoundError(f"Cookies not found: {COOKIES}")
+    if not DENO.exists():
+        raise FileNotFoundError(f"Deno not found: {DENO}")
+
+    opts = {
+                "format": "bestaudio/best",
+                "outtmpl": str(DOWNLOAD_DIR / "audio_%(id)s.%(ext)s"),
+                "noplaylist": True,
+                "quiet": True,
+                "no_warnings": False,
+                "cookiefile": str(COOKIES),
+                "js_runtimes": {
+                    "deno": str(DENO),
+                },
+                "remote_components": ["ejs:npm"],
+            }
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            file_path = Path(ydl.prepare_filename(info))
-            return str(file_path)
+            video_id = info["id"]
+            path = Path(ydl.prepare_filename(info))
 
-    except Exception as first_error:
-        print(f"Download without cookies failed: {first_error}")
-        print("Trying with Chrome cookies...")
+            if path.exists():
+                return str(path)
 
-        ydl_opts["cookiesfrombrowser"] = ("chrome",)
+            files = list(DOWNLOAD_DIR.glob(f"audio_{video_id}.*"))
+            files = [f for f in files if not f.name.endswith(".part")]
 
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                file_path = Path(ydl.prepare_filename(info))
-                return str(file_path)
+            if files:
+                return str(files[0])
 
-        except Exception as second_error:
-            print(f"Download with Chrome cookies also failed: {second_error}")
-            raise RuntimeError(
-                f"YouTube download failed.\n"
-                f"Without cookies: {first_error}\n"
-                f"With Chrome cookies: {second_error}"
-            ) from second_error
+            raise FileNotFoundError(
+                f"Downloaded file not found for {video_id}"
+            )
+    except Exception as e:
+        raise RuntimeError(f"YouTube download failed: {e}") from e
 
 
 def decode_audio(input_file: str) -> np.ndarray:
     container = av.open(input_file)
-
-    audio_stream = next(
-        (stream for stream in container.streams if stream.type == "audio"),
+    stream = next(
+        (s for s in container.streams if s.type == "audio"),
         None,
     )
 
-    if audio_stream is None:
+    if stream is None:
         container.close()
-        raise ValueError(f"No audio stream found in: {input_file}")
+        raise ValueError("No audio stream found")
 
     resampler = av.audio.resampler.AudioResampler(
         format="s16",
@@ -71,123 +75,86 @@ def decode_audio(input_file: str) -> np.ndarray:
     samples = []
 
     try:
-        for frame in container.decode(audio=audio_stream.index):
-            resampled_frames = resampler.resample(frame)
+        for frame in container.decode(audio=stream.index):
+            frames = resampler.resample(frame)
+            if not isinstance(frames, list):
+                frames = [frames]
 
-            if not isinstance(resampled_frames, list):
-                resampled_frames = [resampled_frames]
+            for f in frames:
+                if f is not None:
+                    a = f.to_ndarray()
+                    samples.append(a[0] if a.ndim == 2 else a)
 
-            for resampled_frame in resampled_frames:
-                array = resampled_frame.to_ndarray()
+        frames = resampler.resample(None)
+        if not isinstance(frames, list):
+            frames = [frames]
 
-                if array.ndim == 2:
-                    array = array[0]
-
-                samples.append(array)
-
-        flushed_frames = resampler.resample(None)
-
-        if not isinstance(flushed_frames, list):
-            flushed_frames = [flushed_frames]
-
-        for resampled_frame in flushed_frames:
-            array = resampled_frame.to_ndarray()
-
-            if array.ndim == 2:
-                array = array[0]
-
-            samples.append(array)
-
+        for f in frames:
+            if f is not None:
+                a = f.to_ndarray()
+                samples.append(a[0] if a.ndim == 2 else a)
     finally:
         container.close()
 
     if not samples:
-        raise ValueError(f"Could not decode audio from: {input_file}")
+        raise ValueError("Could not decode audio")
 
-    audio = np.concatenate(samples).astype(np.int16)
-
-    return audio
+    return np.concatenate(samples).astype(np.int16)
 
 
 def convert_audio_to_wav(input_file: str) -> str:
-    input_path = Path(input_file)
-
-    output_file = input_path.with_name(
-        f"{input_path.stem}_converted.wav"
-    )
-
-    audio = decode_audio(str(input_path))
+    path = Path(input_file)
+    output = path.with_name(f"{path.stem}_converted.wav")
+    audio = decode_audio(str(path))
 
     sf.write(
-        str(output_file),
+        str(output),
         audio,
         SAMPLE_RATE,
         subtype="PCM_16",
     )
 
-    return str(output_file)
+    return str(output)
 
 
-def chunk_audio_file(
-    input_file: str,
-    chunk_length: int = CHUNK_LENGTH_MINUTES,
+def split_audio_into_chunks(
+    wav_file: str,
+    chunk_length_minutes: int = CHUNK_MINUTES,
 ) -> list[str]:
-    audio, sample_rate = sf.read(
-        input_file,
-        dtype="int16",
-    )
+    path = Path(wav_file)
+    audio = decode_audio(str(path))
 
-    if audio.ndim > 1:
-        audio = audio[:, 0]
-
-    chunk_samples = chunk_length * 60 * sample_rate
-
+    chunk_size = SAMPLE_RATE * 60 * chunk_length_minutes
     chunks = []
 
-    input_path = Path(input_file)
-
-    for index, start in enumerate(
-        range(0, len(audio), chunk_samples)
-    ):
-        end = start + chunk_samples
-
-        chunk = audio[start:end]
-
-        if len(chunk) == 0:
-            continue
-
-        chunk_file_path = input_path.with_name(
-            f"{input_path.stem}_chunk_{index}.wav"
+    for i in range(0, len(audio), chunk_size):
+        chunk = audio[i:i + chunk_size]
+        output = path.with_name(
+            f"{path.stem}_chunk_{len(chunks) + 1}.wav"
         )
 
         sf.write(
-            str(chunk_file_path),
+            str(output),
             chunk,
-            sample_rate,
+            SAMPLE_RATE,
             subtype="PCM_16",
         )
 
-        chunks.append(str(chunk_file_path))
+        chunks.append(str(output))
 
     return chunks
 
 
 def process_audio_input(source: str) -> list[str]:
+    source = source.strip()
+
+    if not source:
+        raise ValueError("Audio source is empty")
+
     if source.startswith(("http://", "https://")):
         audio_file = download_audio_from_youtube(source)
     else:
         audio_file = source
 
-    if not os.path.exists(audio_file):
-        raise FileNotFoundError(
-            f"Audio file not found: {audio_file}"
-        )
-
-    converted_file = convert_audio_to_wav(audio_file)
-
-    chunks = chunk_audio_file(
-        converted_file,
-        chunk_length=CHUNK_LENGTH_MINUTES,
-    )
-
-    return chunks
+    wav_file = convert_audio_to_wav(audio_file)
+    return split_audio_into_chunks(wav_file)
