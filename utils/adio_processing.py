@@ -21,18 +21,17 @@ def download_audio_from_youtube(url: str) -> str:
         raise FileNotFoundError(f"Deno not found: {DENO}")
 
     opts = {
-                "format": "bestaudio/best",
-                "outtmpl": str(DOWNLOAD_DIR / "audio_%(id)s.%(ext)s"),
-                "noplaylist": True,
-                "quiet": True,
-                "no_warnings": False,
-                "cookiefile": str(COOKIES),
-                "js_runtimes": {
-                    "deno": str(DENO),
-                },
-                "remote_components": ["ejs:npm"],
-            }
-
+        "format": "bestaudio/best",
+        "outtmpl": str(DOWNLOAD_DIR / "audio_%(id)s.%(ext)s"),
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": False,
+        "cookiefile": str(COOKIES),
+        "js_runtimes": {
+            "deno": {"path": str(DENO)},
+        },
+        "remote_components": ["ejs:npm"],
+    }
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)

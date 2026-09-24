@@ -105,8 +105,14 @@ def fetch_lesson(session_id: str, user_id: str = Depends(get_current_user)):
 
 @app.post("/process", response_model=ProcessResponse)
 async def process_video(payload: ProcessRequest, user_id: str = Depends(get_current_user)):
-    if not (url := payload.url.strip()): raise HTTPException(400, "A video URL is required.")
+    if not user_id:
+        raise HTTPException(401, "Not authenticated.")
+
+    if not (url := payload.url.strip()):
+        raise HTTPException(400, "A video URL is required.")
+
     chunks = []
+    
     try:
         DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
         if not (chunks := await asyncio.to_thread(process_audio_input, url)): raise RuntimeError("No audio chunks generated.")
@@ -127,10 +133,14 @@ async def process_video(payload: ProcessRequest, user_id: str = Depends(get_curr
         await asyncio.to_thread(save_lesson, sess_id, user_id, str(title), str(summary), to_list(keys), to_list(qs), text)
         return ProcessResponse(success=True, session_id=sess_id, title=str(title), summary=str(summary), key_points=to_list(keys), questions=to_list(qs), transcript=text)
     
-    except HTTPException: raise
-    except Exception as e: raise HTTPException(500, f"PROCESS ERROR: {e}")
-    finally: cleanup_files(chunks)
-
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("PROCESS ERROR")
+        raise HTTPException(500, f"PROCESS ERROR: {e}")
+    finally:
+        cleanup_files(chunks)
+        
 @app.post("/process-document", response_model=ProcessResponse)
 async def process_document(file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
     if not file.filename: raise HTTPException(400, "No file provided.")
