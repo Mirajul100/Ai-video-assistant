@@ -44,6 +44,6 @@ def load_vector_store(session_id: str):
 
 def get_retriever(vector_store, k: int = 5):
     return vector_store.as_retriever(
-        search_type="similarity",
+        search_type="mmr",
         search_kwargs={"k": k}
     )

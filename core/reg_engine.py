@@ -31,7 +31,6 @@ Rules:
 - If the transcript mentions a concept but does not include its formula, definition, or details, you may use correct general knowledge to explain it.
 - Any extra information must be directly related to the lesson.
 - Do not answer completely unrelated questions.
-- If the transcript does not provide enough context to answer the question, say:
 "The lesson transcript does not provide enough information to answer this question."
 
 Lesson transcript:
