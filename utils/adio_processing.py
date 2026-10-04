@@ -15,6 +15,59 @@ CHUNK_MINUTES = 10
 
 
 def download_audio_from_youtube(url: str) -> str:
+    if not COOKIES.is_file():
+        raise FileNotFoundError(
+            f"YouTube cookies not found: {COOKIES}"
+        )
+
+    if not DENO.is_file():
+        raise FileNotFoundError(
+            f"Deno not found: {DENO}"
+        )
+
+    opts = {
+        "format": "bestaudio/best",
+        "outtmpl": str(DOWNLOAD_DIR / "audio_%(id)s.%(ext)s"),
+        "noplaylist": True,
+
+        # Keep and reuse the same cookies
+        "cookiefile": str(COOKIES),
+
+        "js_runtimes": {
+            "deno": {"path": str(DENO)},
+        },
+        "remote_components": ["ejs:npm"],
+
+        "quiet": False,
+        "no_warnings": False,
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+
+            video_id = info["id"]
+            path = Path(ydl.prepare_filename(info))
+
+            if path.exists():
+                return str(path)
+
+            files = [
+                f for f in DOWNLOAD_DIR.glob(f"audio_{video_id}.*")
+                if not f.name.endswith(".part")
+            ]
+
+            if files:
+                return str(files[0])
+
+            raise FileNotFoundError(
+                f"Downloaded file not found for {video_id}"
+            )
+
+    except Exception as e:
+        raise RuntimeError(
+            f"YouTube download failed: {e}"
+        ) from e
     if not COOKIES.exists():
         raise FileNotFoundError(f"Cookies not found: {COOKIES}")
     if not DENO.exists():
