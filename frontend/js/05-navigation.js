@@ -61,7 +61,7 @@ function openSidebarMobile() {
   
   if (sidebar) sidebar.classList.add("is-open");
   if (backdrop) {
-    backdrop.hidden = false;
+    backdrop.hidden = true;
     backdrop.dataset.open = "true";
   }
   if (menuToggle) menuToggle.setAttribute("aria-expanded", "true");
