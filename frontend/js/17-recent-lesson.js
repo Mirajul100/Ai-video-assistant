@@ -95,14 +95,14 @@
       if (!data.session_id) data.session_id = sessionId;
 
       if (typeof window.applyLessonData === "function") {
-        window.applyLessonData(data, "Saved Lesson");
+        window.applyLessonData(data, null);
       }
       if (typeof updateSidebarChip === "function") {
         updateSidebarChip("ready", data.title || "Lesson");
       }
       if (typeof setActiveView === "function") setActiveView("dashboard");
 
-      if (window.MathJax) {
+      if (window.MathJax && document.getElementById("main-content")) {
         setTimeout(() => {
           window.MathJax.typesetClear();
           window.MathJax.typesetPromise([

@@ -22,9 +22,9 @@ function normalizeQuestion(item) {
 function normalizeTranscript(raw) {
   if (Array.isArray(raw)) {
     return raw.map((seg) => ({
-      time: seg.time || seg.timestamp || null,
-      text: seg.text || seg.line || "",
-    }));
+      time: seg && typeof seg === "object" ? (seg.time || seg.timestamp || null) : null,
+      text: seg && typeof seg === "object" ? (seg.text || seg.line || "") : String(seg || ""),
+    })).filter((seg) => seg.text.trim());
   }
   const text = String(raw || "");
   return text
@@ -93,8 +93,11 @@ function renderDashboardLesson() {
 
   const srcLink = document.getElementById("overviewSourceLink");
   const srcLabel = document.getElementById("overviewSourceLabel");
-  if (srcLink) srcLink.href = lesson.sourceUrl || "#";
-  if (srcLabel) srcLabel.textContent = lesson.sourceUrl ? "Watch on YouTube" : "Saved Lesson";
+  if (srcLink) {
+    srcLink.href = lesson.videoId ? lesson.sourceUrl : "#";
+    srcLink.setAttribute("aria-disabled", String(!lesson.videoId));
+  }
+  if (srcLabel) srcLabel.textContent = lesson.videoId ? "Watch on YouTube" : (lesson.sourceUrl ? "Document lesson" : "Saved Lesson");
   
   const wCount = document.getElementById("overviewWordCount");
   if (wCount) wCount.textContent = lesson.wordCount.toLocaleString();
@@ -235,7 +238,6 @@ function renderQuestions() {
       });
     });
   }
-  symbol()
 }
 
 function renderTranscript() {

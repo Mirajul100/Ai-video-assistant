@@ -49,7 +49,7 @@
   // never navigates to "#" for the demo lesson, which has no real source.
   function initOverviewSourceLink() {
     $("#overviewSourceLink").addEventListener("click", (e) => {
-      if (!state.lesson || !state.lesson.sourceUrl) {
+      if (!state.lesson || !state.lesson.videoId) {
         e.preventDefault();
         showToast("This is a sample lesson — there's no real source video.", "info");
       }
