@@ -7,6 +7,7 @@ function init() {
     'initTranscript', 
     'initChat', 
     'initSettings', 
+    'initTheme',
     'initDemo', 
     'initOverviewSourceLink', 
     'renderNotifications'

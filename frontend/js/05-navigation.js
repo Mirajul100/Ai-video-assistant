@@ -82,6 +82,18 @@ function closeSidebarMobile() {
 
 function initNavigation() {
   document.addEventListener("click", (e) => {
+    const collapseBtn = e.target.closest("#sidebarCollapseBtn");
+    if (collapseBtn) {
+      const sidebar = document.querySelector("#sidebar");
+      if (sidebar && window.matchMedia("(min-width: 761px)").matches) {
+        const collapsed = sidebar.classList.toggle("is-collapsed");
+        collapseBtn.setAttribute("aria-expanded", String(!collapsed));
+        collapseBtn.setAttribute("aria-label", collapsed ? "Expand navigation" : "Collapse navigation");
+        collapseBtn.title = collapsed ? "Expand navigation" : "Collapse navigation";
+      }
+      return;
+    }
+
     const navBtn = e.target.closest("[data-view]");
     if (navBtn) {
       setActiveView(navBtn.dataset.view);

@@ -85,8 +85,6 @@
   box-shadow: 0 0 0 3px var(--accent-ai-soft);
 }
 
-.sidebar__footer { padding-top: 12px; }
-
 .lesson-chip {
   display: flex;
   align-items: center;
@@ -108,9 +106,3 @@
 }
 .lesson-chip__dot.is-ready { background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
 .lesson-chip__dot.is-busy { background: var(--warning); box-shadow: 0 0 0 3px var(--warning-soft); animation: pulse-dot 1.4s ease-in-out infinite; }
-
-.lesson-chip__text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}

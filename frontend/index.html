@@ -22,6 +22,14 @@
   };
 </script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  try {
+    const savedTheme = localStorage.getItem("lumen_theme");
+    document.documentElement.dataset.theme = ["system", "light", "dark"].includes(savedTheme) ? savedTheme : "system";
+  } catch (_) {
+    document.documentElement.dataset.theme = "system";
+  }
+</script>
 <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
@@ -51,6 +59,9 @@
         </svg>
       </span>
       <span class="brand-name">Lumen<span class="brand-name__accent">.ai</span></span>
+      <button class="sidebar__collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse navigation" aria-expanded="true" title="Collapse navigation">
+        {{icon:menu}}
+      </button>
     </div>
 
     <nav class="sidebar__nav" aria-label="Primary">
@@ -98,6 +109,7 @@
         <li><button class="nav-item nav-item--history" disabled>Log in to save history</button></li>
       </ul>
     </div>
+
   </aside>
 
   <!-- ============ MAIN COLUMN ============ -->
@@ -112,6 +124,11 @@
         <h1 class="topbar__title" id="topbarTitle">Dashboard</h1>
       </div>
       <div class="topbar__right">
+        <div class="topbar__theme" role="group" aria-label="Color theme">
+          <button type="button" class="theme-switcher__option" data-theme-choice="system" aria-pressed="true"><span class="theme-switcher__icon" aria-hidden="true">{{icon:system}}</span></button>
+          <button type="button" class="theme-switcher__option" data-theme-choice="light" aria-pressed="false"><span class="theme-switcher__icon" aria-hidden="true">{{icon:light}}</span></button>
+          <button type="button" class="theme-switcher__option" data-theme-choice="dark" aria-pressed="false"><span class="theme-switcher__icon" aria-hidden="true">{{icon:dark}}</span></button>
+        </div>
         <div class="topbar__action-wrap">
           <button class="icon-btn" id="searchBtn" aria-label="Search transcript">{{icon:search}}</button>
         </div>
@@ -585,10 +602,12 @@
 <script src="/static/js/11-ask-ai-chat.js"></script>
 <script src="/static/js/12-settings.js"></script>
 <script src="/static/js/13-demo-lesson.js"></script>
+<script src="/static/js/19-theme.js"></script>
 <script src="/static/js/14-init.js"></script>
 <script src="/static/js/15-document-process.js"></script>
 <script src="/static/js/16-auth.js"></script>
 <script src="/static/js/17-recent-lesson.js"></script>
 <script src="/static/js/18-math-jax.js"></script>
+<script src="/static/js/19-theme.js"></script>
 </body>
 </html>
