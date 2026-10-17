@@ -133,7 +133,7 @@ def summarize_large_transcript(llm, transcript: str) -> str:
                         f"Failed to summarize chunk {index + 1}: {e}"
                     )
 
-                wait_time = 1 ** attempt
+                wait_time = 2 ** attempt
                 time.sleep(wait_time)
 
     combined = "\n\n".join(summaries)

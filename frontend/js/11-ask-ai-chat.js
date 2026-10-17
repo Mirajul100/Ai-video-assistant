@@ -143,13 +143,16 @@ async function callAskAPI(question) {
   }
   let response;
   try {
-    response = await fetch(`${state.apiBase}/ask`, {
+    response = await window.authenticatedFetch(`${state.apiBase}/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: state.sessionId, question }),
     });
   } catch (networkErr) {
     throw { friendly: "Can't reach the server right now. Check your connection and try again." };
+  }
+  if (response.status === 401) {
+    throw { friendly: "Please log in to ask questions about a lesson." };
   }
   if (response.status === 404) {
     throw { friendly: "This lesson's session has expired on the server. Process the video again." };

@@ -1,202 +1,338 @@
 (function () {
   'use strict';
 
-  let currentMode = 'login'; 
+  let currentMode = 'login';
+
+  function authErrorElement() {
+    return document.getElementById("authError");
+  }
+
+  function showAuthError(message) {
+    const error = authErrorElement();
+    if (!error) return;
+    error.textContent = message;
+    error.hidden = false;
+  }
+
+  function clearAuthError() {
+    const error = authErrorElement();
+    if (!error) return;
+    error.textContent = "";
+    error.hidden = true;
+  }
+
+  function getResponseMessage(data, fallback) {
+    if (typeof data?.detail === "string") return data.detail;
+    if (Array.isArray(data?.detail)) {
+      return data.detail
+        .map((item) => item?.msg)
+        .filter(Boolean)
+        .join(" ");
+    }
+    return fallback;
+  }
+
+  function apiUrl(path) {
+    const base = typeof state !== "undefined" && state.apiBase
+      ? state.apiBase
+      : window.location.origin;
+    return `${base.replace(/\/+$/, "")}${path}`;
+  }
+
+  function clearAuthSession(showMessage = false) {
+    localStorage.removeItem("lumen_token");
+    localStorage.removeItem("lumen_user");
+    checkAuthState();
+    if (showMessage) {
+      const modal = document.getElementById("authModal");
+      if (modal) modal.hidden = false;
+      if (typeof showToast === "function") {
+        showToast("Your session expired. Please log in again.", "error");
+      }
+    }
+  }
+
+  async function authenticatedFetch(url, options = {}) {
+    const token = localStorage.getItem("lumen_token");
+    if (!token) {
+      const modal = document.getElementById("authModal");
+      if (modal) modal.hidden = false;
+      const error = new Error("Please log in to continue.");
+      error.friendly = error.message;
+      throw error;
+    }
+    const headers = new Headers(options.headers || {});
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 401) clearAuthSession(true);
+    return response;
+  }
 
   function initAuth() {
     const form = document.getElementById("authForm");
-    if (form) {
-      form.addEventListener("submit", handleEmailAuth);
-    }
+    if (form) form.addEventListener("submit", handleEmailAuth);
 
     checkAuthState();
+    switchMode(currentMode);
     initGoogleAuth();
-    
-    document.addEventListener("click", (e) => {
-      if (e.target.closest("#profileBtn")) {
+
+    document.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target) return;
+
+      if (target.closest("#profileBtn")) {
         if (!localStorage.getItem("lumen_token")) {
           const modal = document.getElementById("authModal");
           if (modal) modal.hidden = false;
-          if (typeof closeDropdowns === 'function') closeDropdowns();
+          if (typeof closeDropdowns === "function") closeDropdowns();
         }
         return;
       }
 
-      if (e.target.closest("#signOutBtn")) {
-        localStorage.removeItem("lumen_token");
-        localStorage.removeItem("lumen_user");
-        checkAuthState();
-        
-        if (typeof closeDropdowns === 'function') closeDropdowns();
-        if (typeof setActiveView === 'function') setActiveView("dashboard");
+      if (target.closest("#signOutBtn")) {
+        clearAuthSession();
+        if (typeof closeDropdowns === "function") closeDropdowns();
+        if (typeof setActiveView === "function") setActiveView("dashboard");
         location.reload();
         return;
       }
 
-      if (e.target.closest("#closeAuthBtn")) {
+      if (target.closest("#closeAuthBtn")) {
         const modal = document.getElementById("authModal");
         if (modal) modal.hidden = true;
         return;
       }
 
-      if (e.target.closest("#tabLogin")) {
-        switchMode('login');
+      if (target.closest("#tabLogin")) {
+        switchMode("login");
         return;
       }
-      
-      if (e.target.closest("#tabRegister")) {
-        switchMode('register');
-        return;
-      }
+
+      if (target.closest("#tabRegister")) switchMode("register");
     });
   }
 
-  function initGoogleAuth() {
-    const checkGoogle = setInterval(() => {
-      if (window.google && window.google.accounts) {
-        clearInterval(checkGoogle);
-        google.accounts.id.initialize({
-          client_id: "116809433079-fnqab7j5nu6t5q4t3mm5fm3oc9dcrid5.apps.googleusercontent.com", 
-          callback: handleGoogleResponse
-        });
-        const btnContainer = document.getElementById("googleButtonContainer");
-        if (btnContainer) {
-          google.accounts.id.renderButton(
-            btnContainer,
-            { theme: "outline", size: "large", width: 300 } 
-          );
-        }
+  async function waitForGoogleIdentity(timeoutMs = 10000) {
+    const startedAt = Date.now();
+    while (!(window.google && window.google.accounts && window.google.accounts.id)) {
+      if (Date.now() - startedAt >= timeoutMs) {
+        throw new Error("Google sign-in could not load. Check your connection and try again.");
       }
-    }, 100); 
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return window.google.accounts.id;
+  }
+
+  async function initGoogleAuth() {
+    const container = document.getElementById("googleButtonContainer");
+    const status = document.getElementById("googleAuthStatus");
+    if (!container) return;
+
+    try {
+      const response = await fetch(apiUrl("/auth/config"));
+      const config = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(getResponseMessage(config, "Could not load Google sign-in settings."));
+      }
+      if (!config.google_client_id) {
+        throw new Error("Google sign-in is not configured on the server.");
+      }
+
+      const googleIdentity = await waitForGoogleIdentity();
+      googleIdentity.initialize({
+        client_id: config.google_client_id,
+        callback: handleGoogleResponse
+      });
+      googleIdentity.renderButton(container, {
+        theme: "outline",
+        size: "large",
+        width: 300
+      });
+      if (status) status.hidden = true;
+    } catch (error) {
+      if (status) {
+        status.textContent = error.message || "Google sign-in is unavailable.";
+        status.hidden = false;
+      }
+      console.error("Google sign-in initialization failed:", error);
+    }
   }
 
   function switchMode(mode) {
-    currentMode = mode;
+    currentMode = mode === "register" ? "register" : "login";
+    const isRegister = currentMode === "register";
     const tabLogin = document.getElementById("tabLogin");
     const tabRegister = document.getElementById("tabRegister");
     const nameField = document.getElementById("nameField");
+    const nameInput = document.getElementById("authName");
+    const passwordInput = document.getElementById("authPassword");
     const authTitle = document.getElementById("authTitle");
     const authSubmit = document.getElementById("authSubmit");
-    const authError = document.getElementById("authError");
 
-    if (tabLogin) tabLogin.classList.toggle("is-active", mode === 'login');
-    if (tabRegister) tabRegister.classList.toggle("is-active", mode === 'register');
-    if (nameField) nameField.hidden = mode === 'login';
-    if (authTitle) authTitle.textContent = mode === 'login' ? 'Welcome Back' : 'Create Account';
-    if (authSubmit) authSubmit.textContent = mode === 'login' ? 'Log In' : 'Register';
-    if (authError) authError.hidden = true;
+    if (tabLogin) tabLogin.classList.toggle("is-active", !isRegister);
+    if (tabRegister) tabRegister.classList.toggle("is-active", isRegister);
+    if (nameField) nameField.hidden = !isRegister;
+    if (nameInput) nameInput.required = isRegister;
+    if (passwordInput) {
+      passwordInput.minLength = isRegister ? 8 : 1;
+      passwordInput.maxLength = 72;
+      passwordInput.autocomplete = isRegister ? "new-password" : "current-password";
+    }
+    if (authTitle) authTitle.textContent = isRegister ? "Create Account" : "Welcome Back";
+    if (authSubmit) authSubmit.textContent = isRegister ? "Register" : "Log In";
+    clearAuthError();
   }
 
-  async function handleEmailAuth(e) {
-    e.preventDefault();
-    const endpoint = currentMode === 'login' ? '/auth/login' : '/auth/register';
-    
-    const emailEl = document.getElementById("authEmail");
-    const passEl = document.getElementById("authPassword");
-    const nameEl = document.getElementById("authName");
-    const errorEl = document.getElementById("authError");
-    
-    const payload = {
-      email: emailEl ? emailEl.value : "",
-      password: passEl ? passEl.value : "",
-      name: (currentMode === 'register' && nameEl) ? nameEl.value : undefined
-    };
+  async function readJson(response) {
+    return response.json().catch(() => ({}));
+  }
 
+  async function handleEmailAuth(event) {
+    event.preventDefault();
+    clearAuthError();
+
+    const form = document.getElementById("authForm");
+    const submit = document.getElementById("authSubmit");
+    const emailInput = document.getElementById("authEmail");
+    const passwordInput = document.getElementById("authPassword");
+    const nameInput = document.getElementById("authName");
+    if (!form || !emailInput || !passwordInput) return;
+
+    if (!form.reportValidity()) return;
+    const isRegister = currentMode === "register";
+    const endpoint = isRegister ? "/auth/register" : "/auth/login";
+    const payload = {
+      email: emailInput.value.trim(),
+      password: passwordInput.value
+    };
+    if (isRegister && nameInput) payload.name = nameInput.value.trim();
+
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = isRegister ? "Creating account…" : "Signing in…";
+    }
     try {
-      const res = await fetch(`${state.apiBase}${endpoint}`, {
+      const response = await fetch(apiUrl(endpoint), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Authentication failed");
-      
+      const data = await readJson(response);
+      if (!response.ok) {
+        throw new Error(getResponseMessage(data, "Authentication failed. Please try again."));
+      }
       completeLogin(data);
-    } catch (err) {
-      if (errorEl) {
-        errorEl.textContent = err.message;
-        errorEl.hidden = false;
+    } catch (error) {
+      showAuthError(error.message || "Could not reach the server. Check your connection.");
+    } finally {
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = currentMode === "register" ? "Register" : "Log In";
       }
     }
   }
 
   async function handleGoogleResponse(response) {
-    const errorEl = document.getElementById("authError");
+    clearAuthError();
+    if (!response?.credential) {
+      showAuthError("Google did not return a sign-in credential. Please try again.");
+      return;
+    }
     try {
-      const res = await fetch(`${state.apiBase}/auth/google`, {
+      const result = await fetch(apiUrl("/auth/google"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: response.credential })
       });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error("Google authentication failed");
-      
-      completeLogin(data);
-    } catch (err) {
-      if (errorEl) {
-        errorEl.textContent = err.message;
-        errorEl.hidden = false;
+      const data = await readJson(result);
+      if (!result.ok) {
+        throw new Error(getResponseMessage(data, "Google sign-in failed. Please try again."));
       }
+      completeLogin(data);
+    } catch (error) {
+      showAuthError(error.message || "Could not reach the server. Check your connection.");
     }
   }
 
   function completeLogin(data) {
-    localStorage.setItem("lumen_token", data.token);
-    localStorage.setItem("lumen_user", JSON.stringify({ name: data.name, email: data.email }));
-    
+    if (!data || typeof data.token !== "string" || !data.token || !data.email) {
+      showAuthError("The server returned an incomplete sign-in response.");
+      return;
+    }
+
+    try {
+      localStorage.setItem("lumen_token", data.token);
+      localStorage.setItem("lumen_user", JSON.stringify({
+        name: data.name || "",
+        email: data.email
+      }));
+    } catch (error) {
+      showAuthError("Could not save your sign-in. Check your browser storage settings.");
+      return;
+    }
+
     const modal = document.getElementById("authModal");
     const form = document.getElementById("authForm");
     if (modal) modal.hidden = true;
     if (form) form.reset();
+    switchMode("login");
     checkAuthState();
   }
 
   function checkAuthState() {
     const token = localStorage.getItem("lumen_token");
-    const userStr = localStorage.getItem("lumen_user");
-    
+    const userString = localStorage.getItem("lumen_user");
+    let user = null;
+
+    if (token && userString) {
+      try {
+        user = JSON.parse(userString);
+      } catch (error) {
+        clearAuthSession();
+        return;
+      }
+      if (!user || typeof user.email !== "string") {
+        clearAuthSession();
+        return;
+      }
+    } else if (token || userString) {
+      clearAuthSession();
+      return;
+    }
+
     const nameEls = document.querySelectorAll(".dropdown-panel__name");
     const roleEls = document.querySelectorAll(".dropdown-panel__role");
     const avatarEls = document.querySelectorAll(".avatar");
     const historyList = document.getElementById("sidebarHistoryList");
-    
-    if (token && userStr) {
-      const user = JSON.parse(userStr);
-      nameEls.forEach(el => el.textContent = user.name || user.email);
-      roleEls.forEach(el => el.textContent = "Logged in");
-      avatarEls.forEach(el => el.textContent = user.name ? user.name.charAt(0).toUpperCase() : "@");
-      
-      // Call fetchHistory from the history module if it exists
-      if (typeof window.fetchHistory === 'function') {
-        window.fetchHistory();
-      }
+
+    if (user) {
+      const displayName = user.name || user.email;
+      nameEls.forEach((element) => { element.textContent = displayName; });
+      roleEls.forEach((element) => { element.textContent = "Logged in"; });
+      avatarEls.forEach((element) => {
+        element.textContent = user.name ? user.name.charAt(0).toUpperCase() : "@";
+      });
+      if (typeof window.fetchHistory === "function") window.fetchHistory();
     } else {
-      nameEls.forEach(el => el.textContent = "Guest Account");
-      roleEls.forEach(el => el.textContent = "Log in to save history");
-      avatarEls.forEach(el => el.textContent = "@");
+      nameEls.forEach((element) => { element.textContent = "Guest Account"; });
+      roleEls.forEach((element) => { element.textContent = "Log in to save history"; });
+      avatarEls.forEach((element) => { element.textContent = "@"; });
       if (historyList) {
-        historyList.innerHTML = `<li><button class="nav-item nav-item--history" disabled>Log in to save history</button></li>`;
+        historyList.textContent = "";
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.className = "nav-item nav-item--history";
+        button.disabled = true;
+        button.textContent = "Log in to save history";
+        item.append(button);
+        historyList.append(item);
       }
     }
   }
 
-  if (!window.__isFetchPatched) {
-    const originalFetch = window.fetch;
-    window.fetch = async function(url, options = {}) {
-      const token = localStorage.getItem("lumen_token");
-      
-      if (token && typeof state !== 'undefined' && String(url).startsWith(state.apiBase)) {
-        options.headers = new Headers(options.headers || {});
-        options.headers.set("Authorization", `Bearer ${token}`);
-      }
-      
-      return originalFetch(url, options);
-    };
-    window.__isFetchPatched = true;
-  }
-
+  window.authenticatedFetch = authenticatedFetch;
+  window.clearAuthSession = clearAuthSession;
   window.checkAuthState = checkAuthState;
   document.addEventListener("DOMContentLoaded", initAuth);
 })();

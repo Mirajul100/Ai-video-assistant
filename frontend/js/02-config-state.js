@@ -4,7 +4,11 @@
   /* -----------------------------------------------------------------
      2. CONFIG & STATE
   ----------------------------------------------------------------- */
-  const DEFAULT_API_BASE = "https://lumen-ai.ddns.net";
+  const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const DEFAULT_API_BASE = isLocalHost
+    ? `http://${window.location.hostname || "127.0.0.1"}:8000`
+    : "https://lumen-ai.ddns.net";
+  const SAVED_API_BASE = localStorage.getItem("lumen_api_base");
   // Matches youtube.com/watch?v=, youtu.be/, youtube.com/embed/, /shorts/, /live/
   const YOUTUBE_ID_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
   const PROCESSING_STEPS = [
@@ -18,7 +22,7 @@
   ];
 
   const state = {
-    apiBase: DEFAULT_API_BASE,
+    apiBase: (SAVED_API_BASE || DEFAULT_API_BASE).replace(/\/+$/, ""),
     currentView: "dashboard",
     videoUrl: null,
     videoId: null, // extracted YouTube ID, used for the thumbnail preview

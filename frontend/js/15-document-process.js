@@ -95,16 +95,18 @@ function initDocumentUpload() {
 }
 
 function handleFileSelection(file) {
-  const validExtensions = ['.pdf', '.docx', '.doc', '.txt', '.pptx', '.epub', '.md'];
+  const validExtensions = ['.pdf', '.docx', '.txt', '.pptx', '.md'];
   const fileName = file.name.toLowerCase();
   const isValid = validExtensions.some(ext => fileName.endsWith(ext));
 
   if (!isValid) {
+    clearFileSelection();
     if (typeof showUploadError === 'function') showUploadError("Unsupported file type. Please upload a valid document.");
     return;
   }
   
   if (file.size > 50 * 1024 * 1024) {
+    clearFileSelection();
     if (typeof showUploadError === 'function') showUploadError("File size exceeds the 50MB limit.");
     return;
   }
@@ -211,7 +213,7 @@ async function beginDocumentProcessing(file) {
     formData.append("file", file);
 
     const apiBaseUrl = (typeof state !== 'undefined' && state.apiBase) ? state.apiBase : 'http://localhost:8000';
-    const response = await fetch(`${apiBaseUrl}/process-document`, {
+    const response = await window.authenticatedFetch(`${apiBaseUrl}/process-document`, {
       method: "POST",
       body: formData,
     });

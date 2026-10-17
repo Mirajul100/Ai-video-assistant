@@ -144,7 +144,6 @@ function renderSummary() {
     const chevronIcon = (typeof ICONS !== 'undefined' && ICONS.chevron) ? ICONS.chevron : '';
     toggleBtn.innerHTML = `${chevronIcon} Expand`;
   }
-  symbol()
 }
 
 function renderKeyPoints() {
@@ -180,7 +179,6 @@ function renderKeyPoints() {
       )
       .join("");
   }
-  symbol()
 }
 
 function renderQuestions() {
@@ -253,7 +251,6 @@ function renderTranscript() {
   if (search) search.value = "";
   if (matchCount) matchCount.textContent = "";
 
-  symbol()
   paintTranscriptBody("");
 }
 
@@ -294,20 +291,6 @@ function paintTranscriptBody(query) {
   const mCount = document.getElementById("transcriptMatchCount");
   if (mCount) {
     mCount.textContent = q ? `${matchCount} match${matchCount === 1 ? "" : "es"}` : "";
-  }
-}
-
-function symbol(){
-  if (window.MathJax) {
-     setTimeout(() => {
-       window.MathJax.typesetClear();
-       const msgElement = document.getElementById(bodyId);
-       if (msgElement) {
-         window.MathJax.typesetPromise([msgElement]).catch(function (err) {
-           console.error('MathJax error:', err.message);
-         });
-       }
-     }, 10); // Small delay allows the browser to paint the text before parsing math
   }
 }
 

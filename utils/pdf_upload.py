@@ -4,6 +4,9 @@ import docx
 from pptx import Presentation
 from langchain_core.documents import Document
 
+SUPPORTED_DOCUMENT_EXTENSIONS = {".pdf", ".docx", ".pptx", ".txt", ".md"}
+
+
 def load_pdf_pages(file_path: str) -> list[Document]:
     reader = pypdf.PdfReader(file_path)
     return [
@@ -55,9 +58,9 @@ def load_any_document(file_path: str) -> list[Document]:
     
     if ext == '.pdf':
         return load_pdf_pages(file_path)
-    elif ext in ['.docx', '.doc']:
+    elif ext == '.docx':
         return load_word_pages(file_path)
-    elif ext in ['.pptx', '.ppt']:
+    elif ext == '.pptx':
         return load_ppt_pages(file_path)
     elif ext in ['.txt', '.md']:
         return load_text_pages(file_path)

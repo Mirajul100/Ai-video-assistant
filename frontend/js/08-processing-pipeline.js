@@ -116,12 +116,15 @@
   async function callProcessAPI(url) {
     let response;
     try {
-      response = await fetch(`${state.apiBase}/process`, {
+      response = await window.authenticatedFetch(`${state.apiBase}/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, language: "english" }),
       });
     } catch (networkErr) {
+      if (networkErr && networkErr.friendly) {
+        throw { friendly: networkErr.friendly };
+      }
       throw { friendly: "Can't reach the server right now. Check your connection and try again." };
     }
 

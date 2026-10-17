@@ -2,7 +2,9 @@ import json
 import os
 import time
 import wave
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from typing import List, Optional
 
 from dotenv import load_dotenv
@@ -27,57 +29,41 @@ Return only the English transcript without any additional commentary."""
 
 def combine_audio_chunks(
     chunk_paths: List[str],
-    output_path: str = "combined_audio.wav"
+    output_path: Optional[str] = None
 ) -> Optional[str]:
-    """
-    Combine multiple compatible WAV files into one WAV file.
-    Does not require pydub.
-    """
-
     if not chunk_paths:
         return None
 
+    target_path = Path(output_path) if output_path else Path(chunk_paths[0]).with_name(
+        f"combined_{uuid.uuid4().hex}.wav"
+    )
     try:
-        chunk_paths = sorted(chunk_paths)
-
         with wave.open(chunk_paths[0], "rb") as first:
             params = first.getparams()
-            audio_frames = [
-                first.readframes(first.getnframes())
-            ]
-
-        for chunk_path in chunk_paths[1:]:
-            with wave.open(chunk_path, "rb") as chunk:
-
-                if (
-                    chunk.getnchannels() != params.nchannels
-                    or chunk.getsampwidth() != params.sampwidth
-                    or chunk.getframerate() != params.framerate
-                    or chunk.getcomptype() != params.comptype
-                ):
-                    raise ValueError(
-                        f"Incompatible WAV format: {chunk_path}"
-                    )
-
-                audio_frames.append(
-                    chunk.readframes(chunk.getnframes())
-                )
-
-        with wave.open(output_path, "wb") as output:
+        with wave.open(str(target_path), "wb") as output:
             output.setnchannels(params.nchannels)
             output.setsampwidth(params.sampwidth)
             output.setframerate(params.framerate)
-            output.setcomptype(params.comptype)
-            output.setcompname(params.compname)
+            output.setcomptype(params.comptype, params.compname)
 
-            for frames in audio_frames:
-                output.writeframes(frames)
+            for chunk_path in chunk_paths:
+                with wave.open(chunk_path, "rb") as chunk:
+                    if (
+                        chunk.getnchannels() != params.nchannels
+                        or chunk.getsampwidth() != params.sampwidth
+                        or chunk.getframerate() != params.framerate
+                        or chunk.getcomptype() != params.comptype
+                    ):
+                        raise ValueError(f"Incompatible WAV format: {chunk_path}")
 
-        return output_path
+                    while frames := chunk.readframes(65536):
+                        output.writeframesraw(frames)
 
-    except Exception as e:
-        print(f"Error combining audio chunks: {e}")
-        return None
+        return str(target_path)
+
+    except Exception:
+        target_path.unlink(missing_ok=True)
+        raise
 
 
 def transcribe_single_chunk(
@@ -216,6 +202,7 @@ def transcribe_chunks_parallel(
     """
 
     documents = []
+    failed_chunks = []
 
     print(
         f"Processing {len(chunk_paths)} chunks "
@@ -232,7 +219,7 @@ def transcribe_chunks_parallel(
                 path,
                 index,
                 max_retries
-            ): (path, index)
+            ): index
             for index, path in enumerate(chunk_paths)
         }
 
@@ -240,7 +227,7 @@ def transcribe_chunks_parallel(
             future_to_chunk
         ):
 
-            path, index = future_to_chunk[future]
+            index = future_to_chunk[future]
 
             try:
 
@@ -253,13 +240,22 @@ def transcribe_chunks_parallel(
                         f"Successfully transcribed "
                         f"chunk {index + 1}"
                     )
+                else:
+                    failed_chunks.append(index + 1)
 
             except Exception as e:
+                failed_chunks.append(index + 1)
 
                 print(
                     f"Failed to transcribe "
                     f"chunk {index + 1}: {e}"
                 )
+
+    if failed_chunks:
+        failed_numbers = ", ".join(map(str, failed_chunks))
+        raise RuntimeError(
+            f"Transcription failed for audio chunk(s): {failed_numbers}"
+        )
 
     documents.sort(
         key=lambda doc: doc.metadata.get(
@@ -292,6 +288,7 @@ def transcribe_chunks_batch(
     """
 
     documents = []
+    failed_batches = []
 
     total_chunks = len(chunk_paths)
 
@@ -329,38 +326,38 @@ def transcribe_chunks_batch(
 
             if doc:
                 documents.append(doc)
+            else:
+                failed_batches.append(str(i + 1))
 
         else:
 
-            combined_path = combine_audio_chunks(
-                batch,
-                f"batch_{batch_num}.wav"
-            )
+            combined_path = combine_audio_chunks(batch)
 
             if combined_path:
-
-                doc = transcribe_single_chunk(
-                    combined_path,
-                    i,
-                    max_retries
-                )
-
-                if doc:
-
-                    doc.metadata["batch"] = (
-                        batch_num
-                    )
-
-                    doc.metadata["chunk_range"] = (
-                        f"{i}-{i + len(batch) - 1}"
-                    )
-
-                    documents.append(doc)
-
                 try:
-                    os.remove(combined_path)
-                except OSError:
-                    pass
+                    doc = transcribe_single_chunk(
+                        combined_path,
+                        i,
+                        max_retries
+                    )
+                    if doc:
+                        doc.metadata["batch"] = batch_num
+                        doc.metadata["chunk_range"] = (
+                            f"{i}-{i + len(batch) - 1}"
+                        )
+                        documents.append(doc)
+                    else:
+                        failed_batches.append(
+                            f"{i + 1}-{i + len(batch)}"
+                        )
+                finally:
+                    Path(combined_path).unlink(missing_ok=True)
+
+    if failed_batches:
+        failed_ranges = ", ".join(failed_batches)
+        raise RuntimeError(
+            f"Transcription failed for audio chunk/batch range(s): {failed_ranges}"
+        )
 
     if not documents:
         raise RuntimeError(
@@ -394,6 +391,8 @@ def transcribe_chunks(
         raise ValueError(
             "No chunk paths provided"
         )
+    if max_retries < 1:
+        raise ValueError("max_retries must be at least 1.")
 
     num_chunks = len(chunk_paths)
 
@@ -564,11 +563,14 @@ def transcribe_chunks_with_cache(
             **kwargs
         )
 
-        for doc, original_index in zip(
-            new_documents,
-            chunk_indices
-        ):
-
+        documents_by_source = {
+            doc.metadata.get("source"): doc
+            for doc in new_documents
+        }
+        for path, original_index in zip(chunks_to_process, chunk_indices):
+            doc = documents_by_source.get(path)
+            if not doc:
+                continue
             doc.metadata["chunk_index"] = (
                 original_index
             )

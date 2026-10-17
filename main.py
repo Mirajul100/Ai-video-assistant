@@ -1,6 +1,11 @@
-import asyncio, logging, uuid, jwt, uvicorn
+import asyncio, logging, uuid, uvicorn
+import os
 from pathlib import Path
 from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -10,36 +15,50 @@ from pydantic import BaseModel
 from langchain_core.documents import Document
 
 from utils.adio_processing import process_audio_input
-from utils.pdf_upload import load_any_document
+from utils.pdf_upload import SUPPORTED_DOCUMENT_EXTENSIONS, load_any_document
 from core.transcribe_gemini import transcribe_chunks, combine_transcript_text
 from core.summerize import summarize_transcript, generate_title
 from core.extractor import extract_key_points, extract_questions
 from core.reg_engine import build_reg_chain, load_reg_chain, ask_question as run_ask_question, clear_chat_memory
 from core.data_base import init_db, save_lesson, get_user_history, get_lesson_by_id
-from core.auth import auth_router, SECRET_KEY, ALGORITHM
+from core.auth import auth_router, decode_access_token, migrate_legacy_auth_users
 
-load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger("Lumen.ai")
 
-BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR, DOWNLOADS_DIR = BASE_DIR / "frontend", BASE_DIR / "downloads"
 
 app = FastAPI(title="Lumen.ai API", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+default_origins = (
+    "http://localhost:5500,http://127.0.0.1:5500,"
+    "http://localhost:8000,http://127.0.0.1:8000"
+)
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", default_origins).split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 init_db()
+migrated_users = migrate_legacy_auth_users()
+if migrated_users:
+    logger.info("Migrated %s legacy authentication accounts.", migrated_users)
 app.include_router(auth_router)
 
 security = HTTPBearer(auto_error=False)
 sessions, MAX_SESSIONS = {}, 50
+MAX_DOCUMENT_UPLOAD_BYTES = 50 * 1024 * 1024
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not credentials:
         return None
-    try:
-        return jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM]).get("sub")
-    except jwt.PyJWTError:
-        return None
+    return decode_access_token(credentials.credentials)
 
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
@@ -208,13 +227,25 @@ async def process_document(file: UploadFile = File(...), user_id: str = Depends(
         raise HTTPException(401, "Not authenticated.")
     if not file.filename:
         raise HTTPException(400, "No file provided.")
+    if Path(file.filename).suffix.lower() not in SUPPORTED_DOCUMENT_EXTENSIONS:
+        raise HTTPException(
+            400,
+            "Unsupported file format. Please use PDF, DOCX, PPTX, TXT, or MD."
+        )
 
     DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
     path = DOWNLOADS_DIR / f"{uuid.uuid4().hex}_{Path(file.filename).name}"
 
     try:
         with open(path, "wb") as buffer:
+            total_bytes = 0
             while chunk := await file.read(1024 * 1024):
+                total_bytes += len(chunk)
+                if total_bytes > MAX_DOCUMENT_UPLOAD_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail="File size exceeds the 50MB limit."
+                    )
                 buffer.write(chunk)
 
         docs = normalize_documents(await asyncio.to_thread(load_any_document, str(path)))
@@ -260,10 +291,14 @@ async def process_document(file: UploadFile = File(...), user_id: str = Depends(
         logger.exception("DOCUMENT ERROR")
         raise HTTPException(500, f"DOCUMENT ERROR: {e}")
     finally:
+        await file.close()
         cleanup_files([str(path)])
 
 @app.post("/ask", response_model=AskResponse)
-async def ask(payload: AskRequest):
+async def ask(payload: AskRequest, user_id: str = Depends(get_current_user)):
+    if not user_id:
+        raise HTTPException(401, "Not authenticated.")
+
     session_id = payload.session_id.strip()
     question = payload.question.strip()
 
@@ -271,6 +306,9 @@ async def ask(payload: AskRequest):
         raise HTTPException(400, "Session ID is required.")
     if not question:
         raise HTTPException(400, "Question is required.")
+
+    if not await asyncio.to_thread(get_lesson_by_id, session_id, user_id):
+        raise HTTPException(404, "Lesson not found.")
 
     session = sessions.get(session_id)
     if not session:

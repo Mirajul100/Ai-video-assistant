@@ -2,6 +2,7 @@ import os
 import json
 import sqlite3
 import logging
+from pathlib import Path
 
 try:
     import psycopg2
@@ -15,13 +16,17 @@ logger = logging.getLogger("Lumen.ai")
 
 DB_URL = os.getenv("DATABASE_URL")
 USE_POSTGRES = bool(DB_URL and HAS_POSTGRES)
+BASE_DIR = Path(__file__).resolve().parent.parent
+SQLITE_PATH = Path(
+    os.getenv("SQLITE_PATH", str(BASE_DIR / "lumen.db"))
+).expanduser()
 
 
 def get_db_connection():
     if USE_POSTGRES:
         return psycopg2.connect(DB_URL)
 
-    conn = sqlite3.connect("lumen.db")
+    conn = sqlite3.connect(SQLITE_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 

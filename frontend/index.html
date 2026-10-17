@@ -309,11 +309,11 @@
             <p class="url-card__desc">Upload a PDF, Word document, PowerPoint, or text file. Lumen will analyze the document content for instant summaries, key points, and AI Q&A.</p>
 
             <div class="dropzone" id="documentDropzone" tabindex="0" role="button" aria-label="Upload document area">
-              <input type="file" id="documentFileInput" accept=".pdf,.docx,.doc,.txt,.pptx,.epub,.md" hidden />
+              <input type="file" id="documentFileInput" accept=".pdf,.docx,.txt,.pptx,.md" hidden />
               <div class="dropzone__content" id="dropzonePrompt">
                 <span class="dropzone__icon">{{icon:doc}}</span>
                 <p class="dropzone__title">Drag & drop your file here, or <span class="dropzone__browse">browse</span></p>
-                <p class="dropzone__hint">Supports PDF, DOCX, TXT, PPTX, EPUB, and MD (Up to 50MB)</p>
+                <p class="dropzone__hint">Supports PDF, DOCX, TXT, PPTX, and MD (Up to 50MB)</p>
               </div>
               
               <div class="dropzone__selected" id="dropzoneSelected" hidden>
@@ -539,26 +539,26 @@
   <div class="modal card">
     <div class="modal__header">
       <h2 id="authTitle">Welcome Back</h2>
-      <button class="icon-btn icon-btn--sm" id="closeAuthBtn">{{icon:close}}</button>
+      <button type="button" class="icon-btn icon-btn--sm" id="closeAuthBtn" aria-label="Close sign in dialog">{{icon:close}}</button>
     </div>
     
     <div class="auth-tabs">
-      <button class="auth-tab is-active" id="tabLogin">Log In</button>
-      <button class="auth-tab" id="tabRegister">Register</button>
+      <button type="button" class="auth-tab is-active" id="tabLogin">Log In</button>
+      <button type="button" class="auth-tab" id="tabRegister">Register</button>
     </div>
 
     <form id="authForm" class="auth-form">
       <div id="nameField" hidden>
         <label class="field-label" for="authName">Full Name</label>
-        <input type="text" id="authName" class="text-input" placeholder="Maya Rahman" />
+        <input type="text" id="authName" class="text-input" placeholder="Maya Rahman" autocomplete="name" maxlength="100" />
       </div>
       <div>
         <label class="field-label" for="authEmail">Email</label>
-        <input type="email" id="authEmail" class="text-input" required />
+        <input type="email" id="authEmail" class="text-input" required autocomplete="email" maxlength="320" />
       </div>
       <div>
         <label class="field-label" for="authPassword">Password</label>
-        <input type="password" id="authPassword" class="text-input" required />
+        <input type="password" id="authPassword" class="text-input" required autocomplete="current-password" maxlength="72" />
       </div>
       <p class="error-text" id="authError" hidden></p>
       <button type="submit" class="btn btn--primary w-100" id="authSubmit">Log In</button>
@@ -568,6 +568,7 @@
     
     <!-- Google Auth Button Container -->
     <div id="googleButtonContainer" class="google-btn-wrap"></div>
+    <p class="error-text" id="googleAuthStatus" role="status" hidden></p>
   </div>
 </div>
 

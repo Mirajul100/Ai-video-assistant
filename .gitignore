@@ -26,6 +26,8 @@ __pycache__/
 Thumbs.db
 vector_db/
 lumen.db
+local_auth.db
+transcription_cache.json
 youtube_cookies.txt
 lumen-new.pem
 lumen-new.pub
