@@ -14,8 +14,13 @@ except ImportError:
 
 logger = logging.getLogger("Lumen.ai")
 
-DB_URL = os.getenv("DATABASE_URL")
-USE_POSTGRES = bool(DB_URL and HAS_POSTGRES)
+DB_URL = os.getenv("DATABASE_URL", "").strip() or None
+if DB_URL and not HAS_POSTGRES:
+    raise RuntimeError(
+        "DATABASE_URL is set, but psycopg2 is unavailable. "
+        "Install psycopg2-binary or remove DATABASE_URL to use SQLite."
+    )
+USE_POSTGRES = bool(DB_URL)
 BASE_DIR = Path(__file__).resolve().parent.parent
 SQLITE_PATH = Path(
     os.getenv("SQLITE_PATH", str(BASE_DIR / "lumen.db"))

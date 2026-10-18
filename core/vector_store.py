@@ -2,8 +2,9 @@ from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from pathlib import Path
 
-CHROMA_DIR = "vector_db"
+CHROMA_DIR = str(Path(__file__).resolve().parent.parent / "vector_db")
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 COLLECTION_NAME = "video_transcripts"
 

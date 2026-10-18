@@ -38,23 +38,22 @@
 body { background: var(--bg); color: var(--text); }
 .sidebar { padding: 18px 14px; transition: width var(--dur-med) var(--ease); }
 .sidebar__brand { padding: 4px 8px 22px; }
+.sidebar__brand-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sidebar__brand-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .brand-mark { width: 30px; height: 30px; }
 .brand-name { font-size: 16px; }
-.sidebar__collapse-btn {
-  margin-left: auto;
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  border: 1px solid transparent;
-  border-radius: var(--r-sm);
-  color: var(--text-faint);
-  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
-}
-.sidebar__collapse-btn:hover { background: var(--surface-hover); border-color: var(--border); color: var(--text); }
-.sidebar__collapse-btn svg { width: 17px; height: 17px; }
 .nav-list { gap: 3px; }
 .nav-item { min-height: 39px; padding: 9px 11px; border-radius: 9px; font-size: 13px; }
 .nav-item.is-active { color: var(--accent-strong); background: var(--accent-soft); }
@@ -184,8 +183,8 @@ body { background: var(--bg); color: var(--text); }
   .sidebar.is-collapsed { width: 68px; padding-inline: 10px; }
   .sidebar.is-collapsed ~ .main-column { margin-left: 68px; }
   .sidebar.is-collapsed .sidebar__brand { justify-content: center; padding-inline: 0; }
+  .sidebar.is-collapsed .sidebar__brand-toggle { justify-content: center; }
   .sidebar.is-collapsed .brand-name,
-  .sidebar.is-collapsed .sidebar__collapse-btn,
   .sidebar.is-collapsed .nav-item__label,
   .sidebar.is-collapsed .sidebar__heading,
   .sidebar.is-collapsed .lesson-chip__name { display: none; }
@@ -196,7 +195,6 @@ body { background: var(--bg); color: var(--text); }
 }
 
 @media (max-width: 760px) {
-  .sidebar__collapse-btn { display: none; }
   .main-content { max-width: none; }
   .topbar__right { gap: 3px; }
   .topbar__theme { gap: 1px; padding: 2px; }

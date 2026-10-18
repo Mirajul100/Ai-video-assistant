@@ -23,12 +23,14 @@
   :root { --topbar-h: 60px; }
 
   .sidebar {
+    top: var(--topbar-h);
     transform: translateX(-100%);
     transition: transform var(--dur-med) var(--ease);
     width: min(280px, 82vw);
     box-shadow: var(--shadow-pop);
   }
   .sidebar.is-open { transform: translateX(0); }
+  .sidebar-backdrop { top: var(--topbar-h); }
   .sidebar-backdrop[data-open="true"] { display: block; }
 
   .main-column { margin-left: 0; }

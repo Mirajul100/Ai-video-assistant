@@ -12,8 +12,28 @@
   }
 
   function extractYoutubeId(url) {
-    const match = String(url || "").match(YOUTUBE_ID_REGEX);
-    return match ? match[1] : null;
+    try {
+      const parsed = new URL(String(url || ""));
+      const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
+      const allowedHosts = new Set([
+        "youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com",
+        "youtu.be", "www.youtu.be"
+      ]);
+      if (!allowedHosts.has(hostname)) return null;
+
+      let id = null;
+      if (hostname.endsWith("youtu.be")) {
+        id = parsed.pathname.split("/").filter(Boolean)[0];
+      } else if (parsed.pathname === "/watch") {
+        id = parsed.searchParams.get("v");
+      } else {
+        const match = parsed.pathname.match(/^\/(?:embed|shorts|live)\/([^/]+)/);
+        id = match ? match[1] : null;
+      }
+      return id && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
+    } catch (error) {
+      return null;
+    }
   }
 
   function validateYoutubeUrl(url) {

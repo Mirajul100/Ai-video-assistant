@@ -42,8 +42,20 @@
 
 
   function inflateIcons() {
-    document.body.innerHTML = document.body.innerHTML.replace(
-      /\{\{icon:(\w+)\}\}/g,
-      (match, name) => ICONS[name] || ""
-    );
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    while (walker.nextNode()) {
+      if (/\{\{icon:\w+\}\}/.test(walker.currentNode.nodeValue)) {
+        textNodes.push(walker.currentNode);
+      }
+    }
+
+    textNodes.forEach((node) => {
+      const template = document.createElement("template");
+      template.innerHTML = node.nodeValue.replace(
+        /\{\{icon:(\w+)\}\}/g,
+        (match, name) => ICONS[name] || ""
+      );
+      node.replaceWith(template.content);
+    });
   }

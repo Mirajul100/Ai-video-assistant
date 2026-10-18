@@ -61,10 +61,14 @@ function openSidebarMobile() {
   
   if (sidebar) sidebar.classList.add("is-open");
   if (backdrop) {
-    backdrop.hidden = true;
+    backdrop.hidden = false;
     backdrop.dataset.open = "true";
   }
-  if (menuToggle) menuToggle.setAttribute("aria-expanded", "true");
+  if (menuToggle) {
+    menuToggle.setAttribute("aria-expanded", "true");
+    menuToggle.setAttribute("aria-label", "Close navigation menu");
+    if (typeof ICONS !== "undefined") menuToggle.innerHTML = ICONS.close;
+  }
 }
 
 function closeSidebarMobile() {
@@ -77,19 +81,25 @@ function closeSidebarMobile() {
     backdrop.hidden = true;
     backdrop.dataset.open = "false";
   }
-  if (menuToggle) menuToggle.setAttribute("aria-expanded", "false");
+  if (menuToggle) {
+    menuToggle.setAttribute("aria-expanded", "false");
+    menuToggle.setAttribute("aria-label", "Open navigation menu");
+    if (typeof ICONS !== "undefined") menuToggle.innerHTML = ICONS.menu;
+  }
 }
 
 function initNavigation() {
   document.addEventListener("click", (e) => {
-    const collapseBtn = e.target.closest("#sidebarCollapseBtn");
-    if (collapseBtn) {
+    const brandToggle = e.target.closest("#sidebarBrandToggle");
+    if (brandToggle) {
       const sidebar = document.querySelector("#sidebar");
       if (sidebar && window.matchMedia("(min-width: 761px)").matches) {
         const collapsed = sidebar.classList.toggle("is-collapsed");
-        collapseBtn.setAttribute("aria-expanded", String(!collapsed));
-        collapseBtn.setAttribute("aria-label", collapsed ? "Expand navigation" : "Collapse navigation");
-        collapseBtn.title = collapsed ? "Expand navigation" : "Collapse navigation";
+        brandToggle.setAttribute("aria-expanded", String(!collapsed));
+        brandToggle.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+        brandToggle.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+      } else {
+        closeSidebarMobile();
       }
       return;
     }

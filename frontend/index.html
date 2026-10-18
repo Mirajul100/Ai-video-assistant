@@ -44,6 +44,7 @@
   <!-- ============ SIDEBAR ============ -->
   <aside class="sidebar" id="sidebar" aria-label="Main navigation">
     <div class="sidebar__brand">
+      <button class="sidebar__brand-toggle" id="sidebarBrandToggle" type="button" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#brandGrad)"/>
@@ -59,8 +60,6 @@
         </svg>
       </span>
       <span class="brand-name">Lumen<span class="brand-name__accent">.ai</span></span>
-      <button class="sidebar__collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse navigation" aria-expanded="true" title="Collapse navigation">
-        {{icon:menu}}
       </button>
     </div>
 
@@ -608,6 +607,5 @@
 <script src="/static/js/16-auth.js"></script>
 <script src="/static/js/17-recent-lesson.js"></script>
 <script src="/static/js/18-math-jax.js"></script>
-<script src="/static/js/19-theme.js"></script>
 </body>
 </html>

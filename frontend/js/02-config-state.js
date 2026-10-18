@@ -9,8 +9,6 @@
     ? `http://${window.location.hostname || "127.0.0.1"}:8000`
     : "https://lumen-ai.ddns.net";
   const SAVED_API_BASE = localStorage.getItem("lumen_api_base");
-  // Matches youtube.com/watch?v=, youtu.be/, youtube.com/embed/, /shorts/, /live/
-  const YOUTUBE_ID_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
   const PROCESSING_STEPS = [
     "Fetching video",
     "Extracting audio",

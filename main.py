@@ -1,5 +1,7 @@
 import asyncio, logging, uuid, uvicorn
 import os
+import re
+from urllib.parse import parse_qs, urlsplit
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -59,6 +61,46 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     if not credentials:
         return None
     return decode_access_token(credentials.credentials)
+
+
+def validate_youtube_url(url: str) -> str:
+    """Reject non-YouTube targets before yt-dlp makes outbound requests."""
+    try:
+        parsed = urlsplit(url)
+        hostname = (parsed.hostname or "").lower().rstrip(".")
+        port = parsed.port
+    except ValueError:
+        raise HTTPException(status_code=400, detail="A valid YouTube URL is required.")
+
+    allowed_hosts = {
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "music.youtube.com",
+        "youtu.be",
+        "www.youtu.be",
+    }
+    if hostname.endswith("youtu.be"):
+        video_id = parsed.path.strip("/").split("/", 1)[0]
+    elif parsed.path == "/watch":
+        video_id = parse_qs(parsed.query).get("v", [""])[0]
+    else:
+        path_parts = parsed.path.strip("/").split("/")
+        video_id = (
+            path_parts[1]
+            if len(path_parts) == 2 and path_parts[0] in {"embed", "shorts", "live"}
+            else ""
+        )
+    if (
+        parsed.scheme not in {"http", "https"}
+        or hostname not in allowed_hosts
+        or parsed.username is not None
+        or parsed.password is not None
+        or port not in {None, 80, 443}
+        or not re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id)
+    ):
+        raise HTTPException(status_code=400, detail="A valid YouTube video URL is required.")
+    return url
 
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
@@ -155,9 +197,9 @@ def fetch_lesson(session_id: str, user_id: str = Depends(get_current_user)):
                     ),
                     "transcript": lesson["transcript"]
                 }
-            except Exception as e:
+            except Exception:
                 logger.exception("Failed to load lesson chain.")
-                raise HTTPException(500, f"Failed to load lesson: {e}")
+                raise HTTPException(500, "Failed to load lesson. Please try again.")
         remove_oldest_session()
     return lesson
 
@@ -168,6 +210,7 @@ async def process_video(payload: ProcessRequest, user_id: str = Depends(get_curr
     url = payload.url.strip()
     if not url:
         raise HTTPException(400, "A video URL is required.")
+    validate_youtube_url(url)
 
     chunks = []
     try:
@@ -194,14 +237,14 @@ async def process_video(payload: ProcessRequest, user_id: str = Depends(get_curr
             asyncio.to_thread(build_reg_chain, docs, sess_id)
         )
 
-        sessions[sess_id] = {"reg_chain": chain, "transcript": text}
-        remove_oldest_session()
-
         await asyncio.to_thread(
             save_lesson,
             sess_id, user_id, str(title), str(summary),
             to_list(keys), to_list(qs), text
         )
+
+        sessions[sess_id] = {"reg_chain": chain, "transcript": text}
+        remove_oldest_session()
 
         return ProcessResponse(
             success=True,
@@ -215,9 +258,9 @@ async def process_video(payload: ProcessRequest, user_id: str = Depends(get_curr
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         logger.exception("PROCESS ERROR")
-        raise HTTPException(500, f"PROCESS ERROR: {e}")
+        raise HTTPException(500, "Video processing failed. Please try again.")
     finally:
         cleanup_files(chunks)
 
@@ -266,14 +309,14 @@ async def process_document(file: UploadFile = File(...), user_id: str = Depends(
             asyncio.to_thread(build_reg_chain, docs, sess_id)
         )
 
-        sessions[sess_id] = {"reg_chain": chain, "transcript": text}
-        remove_oldest_session()
-
         await asyncio.to_thread(
             save_lesson,
             sess_id, user_id, str(title), str(summary),
             to_list(keys), to_list(qs), text
         )
+
+        sessions[sess_id] = {"reg_chain": chain, "transcript": text}
+        remove_oldest_session()
 
         return ProcessResponse(
             success=True,
@@ -287,9 +330,9 @@ async def process_document(file: UploadFile = File(...), user_id: str = Depends(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         logger.exception("DOCUMENT ERROR")
-        raise HTTPException(500, f"DOCUMENT ERROR: {e}")
+        raise HTTPException(500, "Document processing failed. Please try again.")
     finally:
         await file.close()
         cleanup_files([str(path)])
@@ -324,7 +367,7 @@ async def ask(payload: AskRequest, user_id: str = Depends(get_current_user)):
         return AskResponse(success=True, answer=str(answer))
     except Exception as e:
         logger.exception("Question answering failed.")
-        raise HTTPException(500, f"ASK ERROR: {e}")
+        raise HTTPException(500, "Unable to answer this question right now.")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
