@@ -29,12 +29,12 @@ function appendMessage(role, text) {
   const wrap = document.createElement("div");
   wrap.className = `message message--${role}`;
 
-  const sparkleIcon = (typeof ICONS !== 'undefined' && ICONS.sparkle) ? ICONS.sparkle : '✨';
+  const botIcon = (typeof ICONS !== 'undefined' && ICONS.bot) ? ICONS.bot : '🤖';
   const copyIcon = (typeof ICONS !== 'undefined' && ICONS.copy) ? ICONS.copy : '📋';
 
   const avatar = role === "user" 
     ? `<span class="message__avatar">You</span>` 
-    : `<span class="message__avatar">${sparkleIcon}</span>`;
+    : `<span class="message__avatar">${botIcon}</span>`;
 
   const bodyId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   
@@ -83,8 +83,8 @@ function showTypingIndicator() {
   const wrap = document.createElement("div");
   wrap.className = "message message--ai";
   wrap.id = "typingIndicatorMsg";
-  const sparkleIcon = (typeof ICONS !== 'undefined' && ICONS.sparkle) ? ICONS.sparkle : '✨';
-  wrap.innerHTML = `<span class="message__avatar">${sparkleIcon}</span>
+  const botIcon = (typeof ICONS !== 'undefined' && ICONS.bot) ? ICONS.bot : '🤖';
+  wrap.innerHTML = `<span class="message__avatar">${botIcon}</span>
     <div class="message__body">
       <div class="typing-indicator"><span></span><span></span><span></span></div>
     </div>`;
