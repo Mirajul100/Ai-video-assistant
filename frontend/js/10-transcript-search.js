@@ -42,8 +42,9 @@
           const expanded = card.classList.toggle("is-expanded");
           toggleBtn.setAttribute("aria-expanded", String(expanded));
           
+          const chevron_upIcon = (typeof ICONS !== 'undefined' && ICONS.chevron_up) ? ICONS.chevron_up : '';
           const chevronIcon = (typeof ICONS !== 'undefined' && ICONS.chevron) ? ICONS.chevron : '';
-          toggleBtn.innerHTML = expanded ? `${chevronIcon} Collapse` : `${chevronIcon} Expand`;
+          toggleBtn.innerHTML = expanded ? `${chevron_upIcon} Collapse` : `${chevronIcon} Expand`;
         }
         return;
       }

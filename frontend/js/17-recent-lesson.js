@@ -53,7 +53,7 @@
       button.className = "nav-item nav-item--history";
       button.dataset.session = String(item.session_id || "");
       icon.className = "nav-item__icon";
-      icon.innerHTML = typeof ICONS !== "undefined" ? ICONS.doc : "";
+      icon.innerHTML = typeof ICONS !== "undefined" ? ICONS.lesson : "";
       label.className = "nav-item__label";
       label.textContent = String(item.title || "Untitled lesson");
       button.append(icon, label);
