@@ -91,6 +91,7 @@ The backend loads `.env` from the repository directory.
 | `YTDLP_JS_RUNTIME_PATH` | Optional full path to the selected JavaScript runtime executable. |
 | `YOUTUBE_COOKIES` | Optional path to a Netscape-format cookie file for restricted videos. |
 | `YOUTUBE_COOKIES_FROM_BROWSER` | Optional local browser name (`chrome`, `edge`, or `firefox`, for example) used to read an authenticated YouTube session. |
+| `YOUTUBE_PLAYER_CLIENT` | Optional yt-dlp YouTube client override. The app defaults to `tv` when authenticated cookies are available. |
 
 Generate a suitable local token secret with:
 
@@ -118,6 +119,11 @@ Restart the backend after changing `.env`. This reads the local browser session
 only while downloading the requested video; it does not store browser cookies
 in the project. Alternatively, set `YOUTUBE_COOKIES` to a private
 Netscape-format cookie file.
+
+When authenticated requests return HTTP 403, the app automatically uses yt-dlp's
+`tv` YouTube client. It avoids web media URLs that may require a Proof of Origin
+(PO) token. If 403 remains, refresh `youtube_cookies.txt` by exporting cookies
+again after signing in to YouTube.
 
 If yt-dlp reports that it cannot copy Chrome's cookie database, Chrome still
 has the database locked. Close every Chrome window, then use Task Manager to

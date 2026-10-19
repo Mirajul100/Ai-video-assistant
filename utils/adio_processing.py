@@ -105,10 +105,22 @@ def get_browser_cookie_source() -> tuple[str] | None:
     return (browser,)
 
 
+def get_youtube_player_client(has_auth_cookies: bool) -> str | None:
+    configured_client = os.getenv("YOUTUBE_PLAYER_CLIENT", "").strip().lower()
+    if configured_client:
+        return configured_client
+    # The web client can select media URLs that require a PO token and return
+    # HTTP 403. With a signed-in cookie jar, tv uses token-free media URLs.
+    return "tv" if has_auth_cookies else None
+
+
 def download_audio_from_youtube(url: str) -> str:
     js_runtimes = get_js_runtime()
     cookie_file = get_cookie_file()
     browser_cookie_source = get_browser_cookie_source()
+    player_client = get_youtube_player_client(
+        bool(cookie_file or browser_cookie_source)
+    )
     job_id = uuid.uuid4().hex
     opts = {
         "format": "bestaudio/best",
@@ -125,6 +137,10 @@ def download_audio_from_youtube(url: str) -> str:
         opts["cookiefile"] = str(cookie_file)
     elif browser_cookie_source:
         opts["cookiesfrombrowser"] = browser_cookie_source
+    if player_client:
+        opts["extractor_args"] = {
+            "youtube": {"player_client": [player_client]}
+        }
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
@@ -162,6 +178,11 @@ def download_audio_from_youtube(url: str) -> str:
             raise YouTubeDownloadError(
                 "YouTube temporarily blocked this download. Sign in to YouTube in a local browser, set "
                 "YOUTUBE_COOKIES_FROM_BROWSER=chrome (or edge/firefox) in .env, restart the app, and try again."
+            ) from e
+        if "HTTP Error 403" in error_text:
+            raise YouTubeDownloadError(
+                "YouTube rejected the media URL. Refresh youtube_cookies.txt by signing in to YouTube and "
+                "exporting the cookies again, then retry."
             ) from e
         raise RuntimeError(f"YouTube download failed: {error_text}") from e
 
