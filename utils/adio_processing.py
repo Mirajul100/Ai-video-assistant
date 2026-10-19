@@ -17,6 +17,10 @@ SAMPLE_RATE = 16000
 CHUNK_MINUTES = 10
 
 
+class YouTubeDownloadError(RuntimeError):
+    """A YouTube access restriction that the client can resolve."""
+
+
 def get_js_runtime() -> dict[str, dict[str, str]]:
     runtime_names = {"deno", "node", "bun", "quickjs"}
     configured_name = os.getenv("YTDLP_JS_RUNTIME", "").strip().lower()
@@ -80,9 +84,31 @@ def get_cookie_file() -> Path | None:
     return DEFAULT_COOKIES if DEFAULT_COOKIES.is_file() else None
 
 
+def get_browser_cookie_source() -> tuple[str] | None:
+    browser = os.getenv("YOUTUBE_COOKIES_FROM_BROWSER", "").strip().lower()
+    if not browser:
+        return None
+
+    browser = {
+        "google chrome": "chrome",
+        "microsoft edge": "edge",
+    }.get(browser, browser)
+
+    supported_browsers = {
+        "brave", "chrome", "chromium", "edge", "firefox", "opera", "safari",
+        "vivaldi", "whale",
+    }
+    if browser not in supported_browsers:
+        raise ValueError(
+            "YOUTUBE_COOKIES_FROM_BROWSER must name a supported browser, such as chrome, edge, or firefox."
+        )
+    return (browser,)
+
+
 def download_audio_from_youtube(url: str) -> str:
     js_runtimes = get_js_runtime()
     cookie_file = get_cookie_file()
+    browser_cookie_source = get_browser_cookie_source()
     job_id = uuid.uuid4().hex
     opts = {
         "format": "bestaudio/best",
@@ -92,9 +118,13 @@ def download_audio_from_youtube(url: str) -> str:
         "remote_components": ["ejs:npm"],
         "quiet": True,
         "no_warnings": False,
+        "retries": 3,
+        "sleep_interval_requests": 1,
     }
     if cookie_file:
         opts["cookiefile"] = str(cookie_file)
+    elif browser_cookie_source:
+        opts["cookiesfrombrowser"] = browser_cookie_source
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
@@ -121,9 +151,19 @@ def download_audio_from_youtube(url: str) -> str:
     except Exception as e:
         for partial_file in DOWNLOAD_DIR.glob(f"audio_{job_id}_*"):
             partial_file.unlink(missing_ok=True)
-        raise RuntimeError(
-            f"YouTube download failed: {e}"
-        ) from e
+        error_text = str(e)
+        if "Could not copy Chrome cookie database" in error_text:
+            raise YouTubeDownloadError(
+                "Chrome is still using its cookie database. Close every Chrome window, end any remaining "
+                "chrome.exe processes in Task Manager, then retry. Alternatively, sign in with Edge or Firefox "
+                "and set YOUTUBE_COOKIES_FROM_BROWSER=edge or firefox in .env."
+            ) from e
+        if "HTTP Error 429" in error_text or "Sign in to confirm you're not a bot" in error_text:
+            raise YouTubeDownloadError(
+                "YouTube temporarily blocked this download. Sign in to YouTube in a local browser, set "
+                "YOUTUBE_COOKIES_FROM_BROWSER=chrome (or edge/firefox) in .env, restart the app, and try again."
+            ) from e
+        raise RuntimeError(f"YouTube download failed: {error_text}") from e
 
 
 def decode_audio(input_file: str) -> np.ndarray:

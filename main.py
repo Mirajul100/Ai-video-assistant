@@ -16,7 +16,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from langchain_core.documents import Document
 
-from utils.adio_processing import process_audio_input
+from utils.adio_processing import YouTubeDownloadError, process_audio_input
 from utils.pdf_upload import SUPPORTED_DOCUMENT_EXTENSIONS, load_any_document
 from core.transcribe_gemini import transcribe_chunks, combine_transcript_text
 from core.summerize import summarize_transcript, generate_title
@@ -258,6 +258,12 @@ async def process_video(payload: ProcessRequest, user_id: str = Depends(get_curr
 
     except HTTPException:
         raise
+    except ValueError as error:
+        logger.warning("Invalid video-processing configuration: %s", error)
+        raise HTTPException(400, str(error)) from error
+    except YouTubeDownloadError as error:
+        logger.warning("YouTube access blocked: %s", error)
+        raise HTTPException(429, str(error)) from error
     except Exception:
         logger.exception("PROCESS ERROR")
         raise HTTPException(500, "Video processing failed. Please try again.")

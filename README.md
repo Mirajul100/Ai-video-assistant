@@ -90,6 +90,7 @@ The backend loads `.env` from the repository directory.
 | `YTDLP_JS_RUNTIME` | Optional runtime selection: `deno`, `node`, `bun`, or `quickjs`. Blank means auto-detect. |
 | `YTDLP_JS_RUNTIME_PATH` | Optional full path to the selected JavaScript runtime executable. |
 | `YOUTUBE_COOKIES` | Optional path to a Netscape-format cookie file for restricted videos. |
+| `YOUTUBE_COOKIES_FROM_BROWSER` | Optional local browser name (`chrome`, `edge`, or `firefox`, for example) used to read an authenticated YouTube session. |
 
 Generate a suitable local token secret with:
 
@@ -102,6 +103,27 @@ Google sign-in, configure the Google OAuth client as a Web application and add
 the browser origin used to open the app (for example,
 `http://127.0.0.1:8000`) to its authorized JavaScript origins. The same client
 ID must be set in the backend's `GOOGLE_CLIENT_ID`.
+
+## YouTube 429 or bot check
+
+If YouTube returns HTTP 429 or asks you to sign in to confirm you are not a
+bot, sign in to YouTube in a local browser and add its name to `.env`:
+
+```env
+YOUTUBE_COOKIES_FROM_BROWSER=chrome
+```
+
+Use `edge` or `firefox` when that is the browser where you are signed in.
+Restart the backend after changing `.env`. This reads the local browser session
+only while downloading the requested video; it does not store browser cookies
+in the project. Alternatively, set `YOUTUBE_COOKIES` to a private
+Netscape-format cookie file.
+
+If yt-dlp reports that it cannot copy Chrome's cookie database, Chrome still
+has the database locked. Close every Chrome window, then use Task Manager to
+end any remaining `chrome.exe` processes before retrying. If Chrome continues
+to lock the database, sign in to YouTube with Edge or Firefox and set
+`YOUTUBE_COOKIES_FROM_BROWSER=edge` or `YOUTUBE_COOKIES_FROM_BROWSER=firefox`.
 
 When PostgreSQL is configured, install the listed `psycopg2-binary` dependency
 and ensure the database is reachable. If `local_auth.db` exists, startup
