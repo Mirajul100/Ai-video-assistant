@@ -11,6 +11,10 @@
     return Array.from((scope || document).querySelectorAll(selector));
   }
 
+  // Keep the ID check in one place so URL parsing cannot reference a missing
+  // regex when older lesson-loading code calls this utility.
+  const YOUTUBE_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
+
   function extractYoutubeId(url) {
     try {
       const parsed = new URL(String(url || ""));
@@ -30,7 +34,7 @@
         const match = parsed.pathname.match(/^\/(?:embed|shorts|live)\/([^/]+)/);
         id = match ? match[1] : null;
       }
-      return id && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
+      return id && YOUTUBE_ID_REGEX.test(id) ? id : null;
     } catch (error) {
       return null;
     }

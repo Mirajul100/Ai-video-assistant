@@ -17,8 +17,16 @@ function renderChatEmpty() {
   const chatIcon = (typeof ICONS !== 'undefined' && ICONS.chat) ? ICONS.chat : '💬';
   const titleText = (typeof state !== 'undefined' && state.lesson) ? state.lesson.title : "this lesson";
   
+  const safeTitle = typeof escapeHtml === 'function' ? escapeHtml(titleText) : titleText;
   empty.innerHTML = `<span class="chat-empty__icon">${chatIcon}</span>
-    <p>Ask a question about "<strong>${typeof escapeHtml === 'function' ? escapeHtml(titleText) : titleText}</strong>" and I'll answer using only the transcript.</p>`;
+    <strong class="chat-empty__title">What would you like to know?</strong>
+    <p>Ask about <strong>${safeTitle}</strong>. I’ll use the lesson content to answer.</p>
+    <div class="chat-suggestions" aria-label="Suggested questions">
+      <button class="chat-suggestion" type="button" data-chat-prompt="Give me a concise summary of this lesson.">Give me a concise summary</button>
+      <button class="chat-suggestion" type="button" data-chat-prompt="What are the most important ideas in this lesson?">What are the key ideas?</button>
+      <button class="chat-suggestion" type="button" data-chat-prompt="Explain the hardest concept in simple terms.">Explain a concept simply</button>
+      <button class="chat-suggestion" type="button" data-chat-prompt="Create a short quiz based on this lesson.">Make me a quick quiz</button>
+    </div>`;
   container.appendChild(empty);
 }
 
@@ -201,6 +209,12 @@ function initChat() {
   });
 
   document.addEventListener("click", (e) => {
+    const promptButton = e.target.closest("[data-chat-prompt]");
+    if (promptButton) {
+      sendChatMessage(promptButton.dataset.chatPrompt);
+      return;
+    }
+
     // 1. Clear Chat Button
     if (e.target.closest("#clearChatBtn")) {
       if (typeof state !== 'undefined' && state.chat) state.chat.messages = [];

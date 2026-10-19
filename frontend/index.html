@@ -482,13 +482,20 @@
 
       <!-- ===================== ASK AI ===================== -->
       <section class="view" id="view-ask-ai" data-view="ask-ai" aria-labelledby="topbarTitle">
-        <div class="chat-shell card">
+        <div class="chat-shell">
           <div class="chat-shell__header">
-            <div>
-              <h2>Ask AI About This Lesson</h2>
-              <p>Ask questions and get answers based only on the video or document's contents.</p>
+            <div class="chat-shell__heading">
+              <span class="chat-shell__brand-icon" aria-hidden="true">{{icon:bot}}</span>
+              <div class="chat-shell__heading-copy">
+              <span class="chat-shell__eyebrow">LUMEN / STUDY COPILOT</span>
+              <h2>Ask Lumen</h2>
+              <p>Your lesson, opened up.</p>
+              </div>
             </div>
-            <button class="btn btn--ghost" id="clearChatBtn">{{icon:trash}} Clear chat</button>
+            <div class="chat-shell__tools">
+              <span class="chat-grounding"><i aria-hidden="true"></i> LESSON GROUNDED</span>
+              <button class="btn btn--ghost" id="clearChatBtn">{{icon:trash}} Clear chat</button>
+            </div>
           </div>
 
           <div class="chat-messages" id="chatMessages" aria-live="polite">
@@ -498,6 +505,7 @@
             </div>
           </div>
 
+          <div class="chat-composer-wrap">
           <form class="chat-input-bar" id="chatForm">
             <textarea
               id="chatInput"
@@ -509,6 +517,7 @@
             <button class="chat-send-btn" type="submit" id="chatSendBtn" aria-label="Send question" disabled>{{icon:send}}</button>
           </form>
           <p class="chat-input-hint">Enter to send · Shift + Enter for a new line</p>
+          </div>
         </div>
       </section>
 
@@ -590,7 +599,7 @@
 
 <script src="/static/js/01-icon-system.js"></script>
 <script src="/static/js/02-config-state.js"></script>
-<script src="/static/js/03-utilities.js"></script>
+<script src="/static/js/03-utilities.js?v=2"></script>
 <script src="/static/js/04-toasts-notifications.js"></script>
 <script src="/static/js/05-navigation.js"></script>
 <script src="/static/js/06-dropdowns.js"></script>
