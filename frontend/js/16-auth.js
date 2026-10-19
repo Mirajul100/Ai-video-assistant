@@ -73,6 +73,22 @@
     const form = document.getElementById("authForm");
     if (form) form.addEventListener("submit", handleEmailAuth);
 
+    const passwordInput = document.getElementById("authPassword");
+    const passwordToggle = document.getElementById("toggleAuthPassword");
+    const eyeIcon = document.getElementById("passwordEyeIcon");
+    const eyeOffIcon = document.getElementById("passwordEyeOffIcon");
+    if (passwordInput && passwordToggle) {
+      passwordToggle.addEventListener("click", () => {
+        const showPassword = passwordInput.type === "password";
+        passwordInput.type = showPassword ? "text" : "password";
+        passwordToggle.setAttribute("aria-label", showPassword ? "Hide password" : "Show password");
+        passwordToggle.setAttribute("aria-pressed", String(showPassword));
+        if (eyeIcon) eyeIcon.hidden = showPassword;
+        if (eyeOffIcon) eyeOffIcon.hidden = !showPassword;
+        passwordInput.focus();
+      });
+    }
+
     checkAuthState();
     switchMode(currentMode);
     initGoogleAuth();
@@ -101,6 +117,17 @@
       if (target.closest("#closeAuthBtn")) {
         const modal = document.getElementById("authModal");
         if (modal) modal.hidden = true;
+        const passwordInput = document.getElementById("authPassword");
+        const passwordToggle = document.getElementById("toggleAuthPassword");
+        const eyeIcon = document.getElementById("passwordEyeIcon");
+        const eyeOffIcon = document.getElementById("passwordEyeOffIcon");
+        if (passwordInput) passwordInput.type = "password";
+        if (passwordToggle) {
+          passwordToggle.setAttribute("aria-label", "Show password");
+          passwordToggle.setAttribute("aria-pressed", "false");
+        }
+        if (eyeIcon) eyeIcon.hidden = false;
+        if (eyeOffIcon) eyeOffIcon.hidden = true;
         return;
       }
 
@@ -169,6 +196,9 @@
     const passwordInput = document.getElementById("authPassword");
     const authTitle = document.getElementById("authTitle");
     const authSubmit = document.getElementById("authSubmit");
+    const authSubmitLabel = document.getElementById("authSubmitLabel");
+    const authLoginIcon = document.getElementById("authLoginIcon");
+    const authRegisterIcon = document.getElementById("authRegisterIcon");
 
     if (tabLogin) tabLogin.classList.toggle("is-active", !isRegister);
     if (tabRegister) tabRegister.classList.toggle("is-active", isRegister);
@@ -180,7 +210,10 @@
       passwordInput.autocomplete = isRegister ? "new-password" : "current-password";
     }
     if (authTitle) authTitle.textContent = isRegister ? "Create Account" : "Welcome Back";
-    if (authSubmit) authSubmit.textContent = isRegister ? "Register" : "Log In";
+    if (authSubmitLabel) authSubmitLabel.textContent = isRegister ? "Register" : "Log In";
+    if (authSubmit) authSubmit.setAttribute("aria-label", isRegister ? "Register" : "Log in");
+    if (authLoginIcon) authLoginIcon.hidden = isRegister;
+    if (authRegisterIcon) authRegisterIcon.hidden = !isRegister;
     clearAuthError();
   }
 
@@ -194,6 +227,7 @@
 
     const form = document.getElementById("authForm");
     const submit = document.getElementById("authSubmit");
+    const submitLabel = document.getElementById("authSubmitLabel");
     const emailInput = document.getElementById("authEmail");
     const passwordInput = document.getElementById("authPassword");
     const nameInput = document.getElementById("authName");
@@ -210,7 +244,7 @@
 
     if (submit) {
       submit.disabled = true;
-      submit.textContent = isRegister ? "Creating account…" : "Signing in…";
+      if (submitLabel) submitLabel.textContent = isRegister ? "Creating account…" : "Signing in…";
     }
     try {
       const response = await fetch(apiUrl(endpoint), {
@@ -228,7 +262,7 @@
     } finally {
       if (submit) {
         submit.disabled = false;
-        submit.textContent = currentMode === "register" ? "Register" : "Log In";
+        if (submitLabel) submitLabel.textContent = currentMode === "register" ? "Register" : "Log In";
       }
     }
   }

@@ -86,12 +86,30 @@
 }
 
 .auth-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
     background: none;
     border: none;
     color: var(--text-muted);
     padding-bottom: 0.5rem;
     cursor: pointer;
     font-weight: 500;
+}
+
+.auth-tab svg,
+.auth-submit__icon svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+}
+
+.auth-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .auth-tab.is-active {
@@ -103,6 +121,47 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+}
+
+.password-input-wrap {
+    position: relative;
+}
+
+.password-input-wrap .text-input {
+    padding-right: 46px;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transform: translateY(-50%);
+}
+
+.password-toggle:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.password-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.password-toggle svg {
+    width: 18px;
+    height: 18px;
 }
 
 .auth-divider {

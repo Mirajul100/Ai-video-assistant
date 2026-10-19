@@ -568,8 +568,8 @@
     </div>
     
     <div class="auth-tabs">
-      <button type="button" class="auth-tab is-active" id="tabLogin">Log In</button>
-      <button type="button" class="auth-tab" id="tabRegister">Register</button>
+      <button type="button" class="auth-tab is-active" id="tabLogin">{{icon:login}}<span>Log In</span></button>
+      <button type="button" class="auth-tab" id="tabRegister">{{icon:register}}<span>Register</span></button>
     </div>
 
     <form id="authForm" class="auth-form">
@@ -583,10 +583,20 @@
       </div>
       <div>
         <label class="field-label" for="authPassword">Password</label>
-        <input type="password" id="authPassword" class="text-input" required autocomplete="current-password" maxlength="72" />
+        <div class="password-input-wrap">
+          <input type="password" id="authPassword" class="text-input" required autocomplete="current-password" maxlength="72" />
+          <button type="button" class="password-toggle" id="toggleAuthPassword" aria-label="Show password" aria-pressed="false">
+            <span id="passwordEyeIcon">{{icon:eye_off}}</span>
+            <span id="passwordEyeOffIcon" hidden>{{icon:eye}}</span>
+          </button>
+        </div>
       </div>
       <p class="error-text" id="authError" hidden></p>
-      <button type="submit" class="btn btn--primary w-100" id="authSubmit">Log In</button>
+      <button type="submit" class="btn btn--primary w-100 auth-submit" id="authSubmit">
+        <span class="auth-submit__icon" id="authLoginIcon">{{icon:login}}</span>
+        <span class="auth-submit__icon" id="authRegisterIcon" hidden>{{icon:register}}</span>
+        <span id="authSubmitLabel">Log In</span>
+      </button>
     </form>
 
     <div class="auth-divider"><span>or continue with</span></div>
