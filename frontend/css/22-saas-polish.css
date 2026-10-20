@@ -74,6 +74,14 @@ body {
 .nav-list {
   gap: 3px;
 }
+
+.nav-item__label{
+  display: block;
+  text-wrap:nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .nav-item {
   display: flex;
   align-items: center;

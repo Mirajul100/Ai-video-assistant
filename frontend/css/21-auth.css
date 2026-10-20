@@ -15,10 +15,6 @@
 
 .nav-item--history {
     font-size: 0.875rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: block;
     width: 100%;
     text-align: left;
 }
