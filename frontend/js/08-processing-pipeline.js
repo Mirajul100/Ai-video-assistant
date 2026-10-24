@@ -50,8 +50,32 @@
 
   async function beginProcessing(url) {
     resetSteps();
-    $("#processingCard").hidden = false;
-    $("#processingErrorCard").hidden = true;
+    const uploadIdleState = $("#uploadIdleState");
+    const processingCard = $("#processingCard");
+    const processingErrorCard = $("#processingErrorCard");
+
+    if (uploadIdleState) {
+      uploadIdleState.hidden = true;
+      uploadIdleState.style.display = "none";
+    }
+    if (processingCard) {
+      processingCard.hidden = false;
+      processingCard.style.display = "block";
+    }
+    if (processingErrorCard) {
+      processingErrorCard.hidden = true;
+      processingErrorCard.style.display = "none";
+    }
+
+    const title = $("#processingCardTitle");
+    const step1Label = $("#step1Label");
+    const step2Label = $("#step2Label");
+    const step3Label = $("#step3Label");
+    if (title) title.textContent = "Processing your video";
+    if (step1Label) step1Label.textContent = "Fetching video";
+    if (step2Label) step2Label.textContent = "Extracting audio";
+    if (step3Label) step3Label.textContent = "Transcribing audio";
+
     state.processing.active = true;
     state.isDemo = false;
 
@@ -91,7 +115,14 @@
       pushNotification(`"${state.lesson.title}" is ready to explore.`);
 
       await new Promise((r) => setTimeout(r, 450));
-      $("#processingCard").hidden = true;
+      if (processingCard) {
+        processingCard.hidden = true;
+        processingCard.style.display = "none";
+      }
+      if (uploadIdleState) {
+        uploadIdleState.hidden = false;
+        uploadIdleState.style.display = "";
+      }
       setActiveView(state.pendingTargetView || "dashboard");
       state.pendingTargetView = null;
     } catch (err) {
@@ -105,10 +136,20 @@
         "Something went wrong while processing this video. Please try again.";
       
       // Safety check to ensure we hide the processing card on failure
-      if ($("#processingCard")) $("#processingCard").hidden = true;
+      if (processingCard) {
+        processingCard.hidden = true;
+        processingCard.style.display = "none";
+      }
+      if (uploadIdleState) {
+        uploadIdleState.hidden = true;
+        uploadIdleState.style.display = "none";
+      }
       
       $("#processingErrorMessage").textContent = message;
-      $("#processingErrorCard").hidden = false;
+      if (processingErrorCard) {
+        processingErrorCard.hidden = false;
+        processingErrorCard.style.display = "block";
+      }
       showToast(message, "error");
     }
   }

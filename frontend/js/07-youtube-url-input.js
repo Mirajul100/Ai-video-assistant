@@ -140,6 +140,7 @@ function initUpload() {
       if (errCard) errCard.hidden = true;
       const input = document.getElementById("youtubeUrlInput");
       if (input && typeof beginProcessing === 'function') {
+        if (typeof state !== 'undefined') state.pendingTargetView = "summary";
         beginProcessing(input.value.trim());
       }
       return;
