@@ -31,17 +31,34 @@ def get_db_connection():
     if USE_POSTGRES:
         return psycopg2.connect(DB_URL)
 
-    conn = sqlite3.connect(SQLITE_PATH)
+    SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(SQLITE_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     return conn
 
 
+def check_db_connection() -> None:
+    """Run a lightweight database readiness query and always release resources."""
+    conn = get_db_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+    finally:
+        if cursor is not None:
+            cursor.close()
+        conn.close()
+
+
 def init_db():
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = None
+    try:
+        cursor = conn.cursor()
 
-    if USE_POSTGRES:
-        cursor.execute("""
+        if USE_POSTGRES:
+            cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 email TEXT UNIQUE NOT NULL,
@@ -52,7 +69,7 @@ def init_db():
             )
         """)
 
-        cursor.execute("""
+            cursor.execute("""
             CREATE TABLE IF NOT EXISTS lessons (
                 session_id TEXT PRIMARY KEY,
                 user_id TEXT,
@@ -65,8 +82,8 @@ def init_db():
             )
         """)
 
-    else:
-        cursor.execute("""
+        else:
+            cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
@@ -77,7 +94,7 @@ def init_db():
             )
         """)
 
-        cursor.execute("""
+            cursor.execute("""
             CREATE TABLE IF NOT EXISTS lessons (
                 session_id TEXT PRIMARY KEY,
                 user_id TEXT,
@@ -90,10 +107,14 @@ def init_db():
             )
         """)
 
-    conn.commit()
-
-    cursor.close()
-    conn.close()
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        conn.close()
 
     db_name = "Postgres" if USE_POSTGRES else "SQLite"
     logger.info(f"{db_name} DB Initialized Successfully")
@@ -169,35 +190,31 @@ def save_lesson(
 
 def get_user_history(user_id):
     conn = get_db_connection()
-
-    if USE_POSTGRES:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-        query = """
+    cursor = None
+    try:
+        if USE_POSTGRES:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            query = """
             SELECT session_id, title, created_at
             FROM lessons
             WHERE user_id = %s
             ORDER BY created_at DESC
         """
-
-        cursor.execute(query, (user_id,))
-        rows = cursor.fetchall()
-
-    else:
-        cursor = conn.cursor()
-
-        query = """
+            cursor.execute(query, (user_id,))
+        else:
+            cursor = conn.cursor()
+            query = """
             SELECT session_id, title, created_at
             FROM lessons
             WHERE user_id = ?
             ORDER BY created_at DESC
         """
-
-        cursor.execute(query, (user_id,))
+            cursor.execute(query, (user_id,))
         rows = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
+    finally:
+        if cursor is not None:
+            cursor.close()
+        conn.close()
 
     result = []
 
@@ -218,11 +235,11 @@ def get_user_history(user_id):
 
 def get_lesson_by_id(session_id, user_id):
     conn = get_db_connection()
-
-    if USE_POSTGRES:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-        query = """
+    cursor = None
+    try:
+        if USE_POSTGRES:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            query = """
             SELECT
                 session_id,
                 title,
@@ -235,12 +252,10 @@ def get_lesson_by_id(session_id, user_id):
             AND user_id = %s
         """
 
-        cursor.execute(query, (session_id, user_id))
-
-    else:
-        cursor = conn.cursor()
-
-        query = """
+            cursor.execute(query, (session_id, user_id))
+        else:
+            cursor = conn.cursor()
+            query = """
             SELECT
                 session_id,
                 title,
@@ -253,11 +268,11 @@ def get_lesson_by_id(session_id, user_id):
             AND user_id = ?
         """
 
-        cursor.execute(query, (session_id, user_id))
-
-    row = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
+            cursor.execute(query, (session_id, user_id))
+        row = cursor.fetchone()
+    finally:
+        if cursor is not None:
+            cursor.close()
+        conn.close()
 
     return dict(row) if row else None

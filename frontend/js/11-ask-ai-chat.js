@@ -17,7 +17,7 @@ function renderChatEmpty() {
   const chatIcon = (typeof ICONS !== 'undefined' && ICONS.chat) ? ICONS.chat : '💬';
   const titleText = (typeof state !== 'undefined' && state.lesson) ? state.lesson.title : "this lesson";
   
-  const safeTitle = typeof escapeHtml === 'function' ? escapeHtml(titleText) : titleText;
+  const safeTitle = escapeHtml(String(titleText));
   empty.innerHTML = `<span class="chat-empty__icon">${chatIcon}</span>
     <strong class="chat-empty__title">What would you like to know?</strong>
     <p>Ask about <strong>${safeTitle}</strong>. I’ll use the lesson content to answer.</p>

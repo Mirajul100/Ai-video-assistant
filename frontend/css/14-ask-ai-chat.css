@@ -1,4 +1,8 @@
 /* LUMEN — lesson grounded chat */
+.main-content:has(#view-ask-ai.is-active) {
+  padding: 0;
+}
+
 .chat-shell {
   --chat-width: 820px;
   display: flex;
@@ -15,7 +19,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 17px max(24px, calc((100% - var(--chat-width)) / 2));
+  padding: 17px max(24px, calc((90% - var(--chat-width)) / 2));
   border-bottom: 0;
   background: transparent;
 }

@@ -176,8 +176,8 @@ function renderKeyPoints() {
       .map(
         (kp, i) => `<article class="keypoint-card">
           <span class="keypoint-card__index">${String(i + 1).padStart(2, "0")}</span>
-          <h3 class="keypoint-card__title">${typeof escapeHtml === 'function' ? escapeHtml(kp.title) : kp.title}</h3>
-          <p class="keypoint-card__desc">${typeof escapeHtml === 'function' ? escapeHtml(kp.desc) : kp.desc}</p>
+          <h3 class="keypoint-card__title">${escapeHtml(kp.title)}</h3>
+          <p class="keypoint-card__desc">${escapeHtml(kp.desc)}</p>
         </article>`
       )
       .join("");
@@ -218,7 +218,7 @@ function renderQuestions() {
         (q, idx) => `<li>
           <button type="button" class="question-item" data-index="${idx}">
             <span class="question-item__icon">${qIcon}</span>
-            <span class="question-item__text">${typeof escapeHtml === 'function' ? escapeHtml(q) : q}</span>
+            <span class="question-item__text">${escapeHtml(q)}</span>
             <span class="question-item__go">${cIcon}</span>
           </button>
         </li>`
@@ -265,7 +265,7 @@ function paintTranscriptBody(query) {
 
   const html = lesson.transcriptSegments
     .map((seg, idx) => {
-      let text = typeof escapeHtml === 'function' ? escapeHtml(seg.text) : seg.text;
+      let text = escapeHtml(seg.text);
       if (q) {
         const escQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const re = new RegExp(`(${escQ})`, "ig");
@@ -275,7 +275,7 @@ function paintTranscriptBody(query) {
           return `<mark${isFirst ? ' class="is-current" data-first-match="1"' : ""}>${m}</mark>`;
         });
       }
-      const timeLabel = seg.time ? `<span class="transcript-line__time">${typeof escapeHtml === 'function' ? escapeHtml(String(seg.time)) : seg.time}</span>` : "";
+      const timeLabel = seg.time ? `<span class="transcript-line__time">${escapeHtml(String(seg.time))}</span>` : "";
       return `<div class="transcript-line">${timeLabel}<span class="transcript-line__text">${text}</span></div>`;
     })
     .join("");

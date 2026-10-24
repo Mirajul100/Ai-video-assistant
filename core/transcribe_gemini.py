@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 import time
 import wave
 import uuid
@@ -13,18 +14,27 @@ from langchain_core.documents import Document
 
 load_dotenv()
 
-client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
+client = None
+_client_lock = threading.Lock()
 
-GEMINI_MODEL = os.getenv(
-    "GEMINI_MODEL1",
-    "gemini-1.5-flash"
-)
+GEMINI_MODEL = os.getenv("GEMINI_MODEL1", "").strip() or "gemini-3.1-flash-lite"
 
 PROMPT = """Transcribe this audio.
 If the audio is not English, translate it to English.
 Return only the English transcript without any additional commentary."""
+
+
+def get_gemini_client():
+    """Create the Gemini client only when transcription is requested."""
+    global client
+    if client is None:
+        with _client_lock:
+            if client is None:
+                api_key = os.getenv("GEMINI_API_KEY", "").strip()
+                if not api_key:
+                    raise RuntimeError("GEMINI_API_KEY is not configured.")
+                client = genai.Client(api_key=api_key)
+    return client
 
 
 def combine_audio_chunks(
@@ -75,6 +85,7 @@ def transcribe_single_chunk(
     Upload and transcribe a single audio chunk.
     """
 
+    gemini_client = get_gemini_client()
     uploaded_file = None
 
     for attempt in range(max_retries):
@@ -84,7 +95,7 @@ def transcribe_single_chunk(
                 f"{chunk_path}"
             )
 
-            uploaded_file = client.files.upload(
+            uploaded_file = gemini_client.files.upload(
                 file=chunk_path
             )
 
@@ -100,7 +111,7 @@ def transcribe_single_chunk(
 
                 time.sleep(1)
 
-                uploaded_file = client.files.get(
+                uploaded_file = gemini_client.files.get(
                     name=uploaded_file.name
                 )
 
@@ -109,7 +120,7 @@ def transcribe_single_chunk(
                     f"File processing failed: {chunk_path}"
                 )
 
-            response = client.models.generate_content(
+            response = gemini_client.models.generate_content(
                 model=GEMINI_MODEL,
                 contents=[
                     PROMPT,
@@ -183,7 +194,7 @@ def transcribe_single_chunk(
             if uploaded_file:
 
                 try:
-                    client.files.delete(
+                    gemini_client.files.delete(
                         name=uploaded_file.name
                     )
                 except Exception:

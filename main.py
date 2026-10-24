@@ -13,16 +13,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from langchain_core.documents import Document
 
 from utils.adio_processing import YouTubeDownloadError, process_audio_input
-from utils.pdf_upload import SUPPORTED_DOCUMENT_EXTENSIONS, load_any_document
+from utils.pdf_upload import InvalidDocumentError, SUPPORTED_DOCUMENT_EXTENSIONS, load_any_document
 from core.transcribe_gemini import transcribe_chunks, combine_transcript_text
 from core.summerize import summarize_transcript, generate_title
 from core.extractor import extract_key_points, extract_questions
 from core.reg_engine import build_reg_chain, load_reg_chain, ask_question as run_ask_question, clear_chat_memory
-from core.data_base import init_db, save_lesson, get_user_history, get_lesson_by_id
+from core.data_base import check_db_connection, init_db, save_lesson, get_user_history, get_lesson_by_id
 from core.auth import auth_router, decode_access_token, migrate_legacy_auth_users
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
@@ -61,6 +61,11 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     if not credentials:
         return None
     return decode_access_token(credentials.credentials)
+
+
+def require_gemini_configuration() -> None:
+    if not os.getenv("GEMINI_API_KEY", "").strip():
+        raise HTTPException(503, "AI processing is not configured. Set GEMINI_API_KEY and restart the app.")
 
 
 def validate_youtube_url(url: str) -> str:
@@ -106,7 +111,7 @@ if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 class ProcessRequest(BaseModel):
-    url: str
+    url: str = Field(min_length=1, max_length=2048)
     language: str = "english"
 
 class ProcessResponse(BaseModel):
@@ -119,8 +124,8 @@ class ProcessResponse(BaseModel):
     transcript: str
 
 class AskRequest(BaseModel):
-    session_id: str
-    question: str
+    session_id: str = Field(min_length=1, max_length=128)
+    question: str = Field(min_length=1, max_length=8000)
 
 class AskResponse(BaseModel):
     success: bool
@@ -164,6 +169,11 @@ async def serve_frontend():
 
 @app.get("/health")
 def health():
+    try:
+        check_db_connection()
+    except Exception as error:
+        logger.warning("Health check failed (%s).", type(error).__name__)
+        raise HTTPException(503, "Database is unavailable.") from error
     return {"status": "healthy"}
 
 @app.get("/history")
@@ -211,6 +221,7 @@ async def process_video(payload: ProcessRequest, user_id: str = Depends(get_curr
     if not url:
         raise HTTPException(400, "A video URL is required.")
     validate_youtube_url(url)
+    require_gemini_configuration()
 
     chunks = []
     try:
@@ -299,11 +310,12 @@ async def process_document(file: UploadFile = File(...), user_id: str = Depends(
 
         docs = normalize_documents(await asyncio.to_thread(load_any_document, str(path)))
         if not docs:
-            raise RuntimeError("No text extracted.")
+            raise HTTPException(422, "No readable text was found in the document.")
 
         text = "\n\n".join(d.page_content for d in docs if d.page_content).strip()
         if not text:
-            raise RuntimeError("No readable text.")
+            raise HTTPException(422, "No readable text was found in the document.")
+        require_gemini_configuration()
 
         sess_id = str(uuid.uuid4())
 
@@ -336,6 +348,9 @@ async def process_document(file: UploadFile = File(...), user_id: str = Depends(
 
     except HTTPException:
         raise
+    except InvalidDocumentError as error:
+        logger.info("Rejected document upload (%s).", error)
+        raise HTTPException(422, str(error)) from error
     except Exception:
         logger.exception("DOCUMENT ERROR")
         raise HTTPException(500, "Document processing failed. Please try again.")

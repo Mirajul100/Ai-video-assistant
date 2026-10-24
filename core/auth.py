@@ -54,12 +54,15 @@ def create_access_token(data: dict) -> str:
 
 
 def ensure_auth_configured() -> None:
-    if not SECRET_KEY:
-        raise HTTPException(status_code=503, detail="Authentication is not configured.")
+    if not SECRET_KEY or len(SECRET_KEY.encode("utf-8")) < 32:
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication requires a SECRET_KEY of at least 32 bytes."
+        )
 
 
 def decode_access_token(token: str) -> str | None:
-    if not SECRET_KEY:
+    if not SECRET_KEY or len(SECRET_KEY.encode("utf-8")) < 32:
         return None
     try:
         subject = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]).get("sub")

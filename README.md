@@ -18,6 +18,7 @@ SQLite by default, with PostgreSQL available through configuration.
 ## Requirements
 
 - Python 3.10 or later.
+- FFmpeg executable on `PATH` for audio fallback conversion.
 - A Gemini API key for transcription and the AI lesson features.
 - Deno, Node.js, Bun, or QuickJS on `PATH` for YouTube extraction with yt-dlp.
 - Google OAuth 2.0 Web client ID to enable Google sign-in. Email/password auth
@@ -39,6 +40,15 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 Copy-Item example.env .env
 ```
+
+Install the FFmpeg executable separately; the Python `ffmpeg-python` package
+does not provide it. On Windows with WinGet:
+
+```powershell
+winget install --id Gyan.FFmpeg --exact
+```
+
+Open a new terminal and verify it is available with `ffmpeg -version`.
 
 Edit `.env` as described below, then start the app from the repository root:
 
@@ -85,13 +95,13 @@ The backend loads `.env` from the repository directory.
 | `SECRET_KEY` | Required for authentication token signing. Use a private random value of at least 32 bytes. |
 | `GOOGLE_CLIENT_ID` | Optional Google OAuth 2.0 Web client ID; required for Google sign-in. |
 | `DATABASE_URL` | Optional PostgreSQL connection URL. Without it, the app uses SQLite. |
-| `SQLITE_PATH` | Optional SQLite database path; defaults to `lumen.db` in the repository directory. |
+| `SQLITE_PATH` | Optional SQLite database path; defaults to `lumen.db` in the repository directory. Parent directories are created automatically. |
 | `CORS_ORIGINS` | Comma-separated allowed browser origins. Defaults include localhost ports 5500 and 8000. |
 | `YTDLP_JS_RUNTIME` | Optional runtime selection: `deno`, `node`, `bun`, or `quickjs`. Blank means auto-detect. |
 | `YTDLP_JS_RUNTIME_PATH` | Optional full path to the selected JavaScript runtime executable. |
 | `YOUTUBE_COOKIES` | Optional path to a Netscape-format cookie file for restricted videos. |
 | `YOUTUBE_COOKIES_FROM_BROWSER` | Optional local browser name (`chrome`, `edge`, or `firefox`, for example) used to read an authenticated YouTube session. |
-| `YOUTUBE_PLAYER_CLIENT` | Optional yt-dlp YouTube client override. The app defaults to `tv` when authenticated cookies are available. |
+| `YOUTUBE_PLAYER_CLIENT` | Optional yt-dlp YouTube client override. Authenticated downloads default to yt-dlp's `default` and `web_embedded` clients. |
 
 Generate a suitable local token secret with:
 
@@ -120,10 +130,11 @@ only while downloading the requested video; it does not store browser cookies
 in the project. Alternatively, set `YOUTUBE_COOKIES` to a private
 Netscape-format cookie file.
 
-When authenticated requests return HTTP 403, the app automatically uses yt-dlp's
-`tv` YouTube client. It avoids web media URLs that may require a Proof of Origin
-(PO) token. If 403 remains, refresh `youtube_cookies.txt` by exporting cookies
-again after signing in to YouTube.
+Authenticated downloads use yt-dlp's `default` and `web_embedded` clients to
+avoid the `tv_downgraded` path that can fail with "The page needs to be
+reloaded." If YouTube rejects the extraction, refresh the cookie file only if
+the error indicates the session is invalid; a SABR warning alone does not mean
+the download failed.
 
 If yt-dlp reports that it cannot copy Chrome's cookie database, Chrome still
 has the database locked. Close every Chrome window, then use Task Manager to
@@ -181,6 +192,8 @@ fails; check the backend log for the detailed server-side exception.
 
 - SQLite data is stored in the repository-root `lumen.db` by default, or at the
   path configured by `SQLITE_PATH`.
+- Docker containers are ephemeral. Mount persistent storage for `SQLITE_PATH`
+  and `vector_db/` if lessons and retrieval data must survive replacement.
 - Downloaded and converted audio files are kept under `downloads/` only while
   the request is running; generated chunks are removed after processing.
 - The vector store is written under `vector_db/`.
@@ -195,6 +208,8 @@ fails; check the backend log for the detailed server-side exception.
 - The current in-memory session registry is limited to 50 recent sessions and
   is not shared across multiple worker processes. Use a shared session store
   before running multiple workers.
+- The container runs as a non-root user and excludes local `.env`, cookie,
+  database, and key files from the build context. Inject secrets at runtime.
 - AI and YouTube features depend on third-party services, network access, valid
   API credentials, model availability, and applicable service quotas.
 - The `/process` request includes a `language` field, but transcription currently
