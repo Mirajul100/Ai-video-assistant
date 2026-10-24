@@ -105,7 +105,7 @@
     <div class="sidebar__history">
       <h3 class="sidebar__heading">Recent Lessons</h3>
       <ul class="nav-list" id="sidebarHistoryList">
-        <li><button class="nav-item nav-item--history" disabled>Log in to save history</button></li>
+        <li><button type="button" class="nav-item nav-item--history" aria-label="Log in to save history"><span class="nav-item__icon">{{icon:login}}</span><span class="nav-item__label" id="sidebarHistoryLabel">Log in to save history</span></button></li>
       </ul>
     </div>
 
@@ -575,7 +575,7 @@
     <form id="authForm" class="auth-form">
       <div id="nameField" hidden>
         <label class="field-label" for="authName">Full Name</label>
-        <input type="text" id="authName" class="text-input" placeholder="Maya Rahman" autocomplete="name" maxlength="100" />
+        <input type="text" id="authName" class="text-input" placeholder="Enter You Name" autocomplete="name" maxlength="100" />
       </div>
       <div>
         <label class="field-label" for="authEmail">Email</label>

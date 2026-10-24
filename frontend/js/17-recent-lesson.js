@@ -36,9 +36,15 @@
     if (!historyItems.length) {
       const row = document.createElement("li");
       const button = document.createElement("button");
+      const icon = document.createElement("span");
+      const label = document.createElement("span");
       button.className = "nav-item nav-item--history";
       button.disabled = true;
-      button.textContent = "No recent lessons";
+      icon.className = "nav-item__icon";
+      icon.innerHTML = typeof ICONS !== "undefined" ? ICONS.no_lesson : "";
+      label.className = "nav-item__label";
+      label.textContent = "No recent lessons";
+      button.append(icon, label);
       row.append(button);
       list.append(row);
       return;

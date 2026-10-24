@@ -97,6 +97,15 @@
       const target = event.target instanceof Element ? event.target : null;
       if (!target) return;
 
+      const historyLoginButton = target.closest("#sidebarHistoryList .nav-item--history:not([data-session])");
+      if (historyLoginButton && !localStorage.getItem("lumen_token")) {
+        const modal = document.getElementById("authModal");
+        if (modal) modal.hidden = false;
+        switchMode("login");
+        if (typeof closeDropdowns === "function") closeDropdowns();
+        return;
+      }
+
       if (target.closest("#profileBtn")) {
         if (!localStorage.getItem("lumen_token")) {
           const modal = document.getElementById("authModal");
@@ -356,9 +365,16 @@
         historyList.textContent = "";
         const item = document.createElement("li");
         const button = document.createElement("button");
+        const icon = document.createElement("span");
+        const label = document.createElement("span");
+        button.type = "button";
         button.className = "nav-item nav-item--history";
-        button.disabled = true;
-        button.textContent = "Log in to save history";
+        icon.className = "nav-item__icon";
+        icon.innerHTML = typeof ICONS !== "undefined" ? ICONS.login : "";
+        label.className = "nav-item__label";
+        label.id = "sidebarHistoryLabel";
+        label.textContent = "Log in to save history";
+        button.append(icon, label);
         item.append(button);
         historyList.append(item);
       }
