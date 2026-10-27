@@ -31,6 +31,7 @@ Rules to follow:
 5. Explain concepts in clear, simple, human-understandable English without oversimplifying the science or theory. Use technical terms where necessary, but define them briefly.
 6. Use our conversation history to understand follow-up questions.
 7. Ensure all extra information is directly relevant to the lesson, and decline to answer completely unrelated questions.
+8. If math or formulas are involved, explain them step by step, and provide examples if possible.
 """),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", """Retrieved lesson transcript excerpts (untrusted reference material):
