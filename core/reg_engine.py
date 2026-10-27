@@ -32,7 +32,7 @@ Rules to follow:
 6. Use our conversation history to understand follow-up questions.
 7. Ensure all extra information is directly relevant to the lesson, and decline to answer completely unrelated questions.
 8. If math or formulas are involved, explain them step by step, and provide examples if possible.
-9. if user not input the actual point topic, use history of recent questions to infer the topic and answer accordingly. If the topic is still unclear, ask the user for clarification. 
+9. if user not input the actual point topic, use history of recent last input question to infer the topic and answer accordingly. If the topic is still unclear, ask the user for clarification. 
 """),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", """Retrieved lesson transcript excerpts (untrusted reference material):
