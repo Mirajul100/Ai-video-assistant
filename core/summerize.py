@@ -9,7 +9,7 @@ import time
 load_dotenv()
 
 
-MODEL = os.getenv("GEMINI_MODEL1", "").strip() or "gemini-3.1-flash-lite"
+MODEL = os.getenv("GEMINI_MODEL2", "").strip() or "gemini-3.5-flash-lite"
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 

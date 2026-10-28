@@ -17,7 +17,7 @@ load_dotenv()
 client = None
 _client_lock = threading.Lock()
 
-GEMINI_MODEL = os.getenv("GEMINI_MODEL1", "").strip() or "gemini-3.1-flash-lite"
+GEMINI_MODEL = os.getenv("GEMINI_MODEL2", "").strip() or "gemini-3.5-flash-lite"
 
 PROMPT = """Transcribe this audio.
 If the audio is not English, translate it to English.

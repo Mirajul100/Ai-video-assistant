@@ -1,8 +1,24 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.chat_history import InMemoryChatMessageHistory
+from langchain_google_genai import ChatGoogleGenerativeAI
 from .vector_store import get_retriever, load_vector_store, create_vector_store
-from .summerize import get_llm
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+MODEL = os.getenv("GEMINI_MODEL1", "").strip() or "gemini-3.6-flash"
+API_KEY = os.getenv("GEMINI_API_KEY")
+
+
+def get_llm():
+    return ChatGoogleGenerativeAI(
+        model=MODEL,
+        api_key=API_KEY,
+        temperature=0.4,
+        max_retries=5
+    )
 
 chat_memory = {}
 
