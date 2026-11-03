@@ -69,3 +69,11 @@
 @media (max-width: 400px) {
   .hero__title { font-size: 26px; }
 }
+
+@media (max-width: 360px) {
+  .stat-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 340px) {
+  .topbar__title { display: none; }
+}

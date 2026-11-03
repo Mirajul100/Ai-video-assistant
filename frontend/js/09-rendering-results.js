@@ -56,6 +56,16 @@ function applyLessonData(data, sourceUrl) {
   };
 
   state.chat.messages = [];
+  const mathJax = window.MathJax;
+  const mainContent = document.getElementById("main-content");
+  if (mathJax && typeof mathJax.typesetClear === "function" && mainContent) {
+    try {
+      mathJax.typesetClear([mainContent]);
+    } catch (error) {
+      console.error("MathJax cleanup error:", error);
+    }
+  }
+
   renderDashboardLesson();
   renderSummary();
   renderKeyPoints();

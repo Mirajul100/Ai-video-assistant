@@ -69,21 +69,6 @@ function appendMessage(role, text) {
     });
   }
 
-  // ==========================================
-  // MathJax Trigger: Now applies to BOTH AI and User messages
-  // ==========================================
-  if (window.MathJax) {
-     setTimeout(() => {
-       window.MathJax.typesetClear();
-       const msgElement = document.getElementById(bodyId);
-       if (msgElement) {
-         window.MathJax.typesetPromise([msgElement]).catch(function (err) {
-           console.error('MathJax error:', err.message);
-         });
-       }
-     }, 10); // Small delay allows the browser to paint the text before parsing math
-  }
-
   return wrap;
 }
 

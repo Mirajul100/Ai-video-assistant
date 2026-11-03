@@ -107,17 +107,6 @@
         updateSidebarChip("ready", data.title || "Lesson");
       }
       if (typeof setActiveView === "function") setActiveView("dashboard");
-
-      if (window.MathJax && document.getElementById("main-content")) {
-        setTimeout(() => {
-          window.MathJax.typesetClear();
-          window.MathJax.typesetPromise([
-            document.getElementById("main-content")
-          ]).catch((error) => {
-            console.error("MathJax error:", error.message);
-          });
-        }, 50);
-      }
     } catch (error) {
       console.error("Load lesson failed:", error);
       if (typeof showToast === "function") {
