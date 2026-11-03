@@ -2,6 +2,25 @@
   'use strict';
 
   let currentMode = 'login';
+  let pendingAuthWaiters = [];
+
+  function finishPendingAuthWaiters(error) {
+    const waiters = pendingAuthWaiters;
+    pendingAuthWaiters = [];
+    waiters.forEach(({ resolve, reject }) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  }
+
+  function waitForLogin() {
+    const modal = document.getElementById("authModal");
+    if (modal) modal.hidden = false;
+    // Keep the original request (including its FormData/File body) waiting here.
+    return new Promise((resolve, reject) => {
+      pendingAuthWaiters.push({ resolve, reject });
+    });
+  }
 
   function authErrorElement() {
     return document.getElementById("authError");
@@ -40,6 +59,7 @@
   }
 
   function clearAuthSession(showMessage = false) {
+    finishPendingAuthWaiters(new Error("Please log in to continue."));
     localStorage.removeItem("lumen_token");
     localStorage.removeItem("lumen_user");
     checkAuthState();
@@ -53,13 +73,11 @@
   }
 
   async function authenticatedFetch(url, options = {}) {
-    const token = localStorage.getItem("lumen_token");
+    let token = localStorage.getItem("lumen_token");
     if (!token) {
-      const modal = document.getElementById("authModal");
-      if (modal) modal.hidden = false;
-      const error = new Error("Please log in to continue.");
-      error.friendly = error.message;
-      throw error;
+      await waitForLogin();
+      token = localStorage.getItem("lumen_token");
+      if (!token) throw new Error("Please log in to continue.");
     }
     const headers = new Headers(options.headers || {});
     if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -124,6 +142,7 @@
       }
 
       if (target.closest("#closeAuthBtn")) {
+        finishPendingAuthWaiters(new Error("Sign in was cancelled. Please retry processing."));
         const modal = document.getElementById("authModal");
         if (modal) modal.hidden = true;
         const passwordInput = document.getElementById("authPassword");
@@ -321,6 +340,7 @@
     if (form) form.reset();
     switchMode("login");
     checkAuthState();
+    finishPendingAuthWaiters();
   }
 
   function checkAuthState() {
