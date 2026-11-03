@@ -30,3 +30,4 @@ chromadb==1.5.9
 psycopg2-binary==2.9.13
 soundfile==0.14.0
 av==18.1.0
+httpx==0.28.1

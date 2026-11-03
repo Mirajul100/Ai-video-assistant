@@ -1,6 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.chat_history import InMemoryChatMessageHistory
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from .vector_store import get_retriever, load_vector_store, create_vector_store
 from dotenv import load_dotenv
@@ -29,6 +30,16 @@ def get_chat_history(session_id):
 
 def clear_chat_memory(session_id):
     chat_memory.pop(session_id, None)
+
+def restore_chat_memory(session_id, messages):
+    """Replace in-process lesson context with its persisted conversation."""
+    history = InMemoryChatMessageHistory()
+    for message in messages:
+        if message.get("role") == "user":
+            history.add_user_message(message.get("content", ""))
+        elif message.get("role") == "assistant":
+            history.add_ai_message(message.get("content", ""))
+    chat_memory[session_id] = history
 
 def format_doc(docs):
     return "\n\n".join(d.page_content for d in docs if d.page_content)
@@ -93,10 +104,11 @@ def load_reg_chain(session_id):
 
 def ask_question(reg_chain, question, session_id):
     history = get_chat_history(session_id)
+    recent_messages = history.messages[-12:]
     answer = reg_chain.invoke({
         "question": question,
-        "chat_history": history.messages
+        "chat_history": recent_messages
     })
-    history.add_user_message(question)
-    history.add_ai_message(answer)
+    history.clear()
+    history.add_messages(recent_messages + [HumanMessage(content=question), AIMessage(content=answer)])
     return answer

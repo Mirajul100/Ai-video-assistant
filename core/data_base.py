@@ -34,6 +34,7 @@ def get_db_connection():
     SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(SQLITE_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
@@ -68,7 +69,6 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS lessons (
                 session_id TEXT PRIMARY KEY,
@@ -81,7 +81,6 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-
         else:
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -93,7 +92,6 @@ def init_db():
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
-
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS lessons (
                 session_id TEXT PRIMARY KEY,
@@ -106,6 +104,17 @@ def init_db():
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        message_id_column = "BIGSERIAL PRIMARY KEY" if USE_POSTGRES else "INTEGER PRIMARY KEY AUTOINCREMENT"
+        cursor.execute(f"""CREATE TABLE IF NOT EXISTS lesson_chat_messages (
+            id {message_id_column},
+            lesson_id TEXT NOT NULL REFERENCES lessons(session_id) ON DELETE CASCADE,
+            user_id TEXT NOT NULL,
+            role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )""")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_lesson_chat_owner_order ON lesson_chat_messages(user_id, lesson_id, id)")
 
         conn.commit()
     except Exception:
@@ -276,3 +285,53 @@ def get_lesson_by_id(session_id, user_id):
         conn.close()
 
     return dict(row) if row else None
+
+
+def save_lesson_chat_message(session_id, user_id, role, content):
+    """Persist one message only under the authenticated lesson owner."""
+    conn = get_db_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        placeholder = "%s" if USE_POSTGRES else "?"
+        cursor.execute(
+            f"INSERT INTO lesson_chat_messages (lesson_id, user_id, role, content) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})",
+            (session_id, str(user_id), role, content),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.exception("Failed to save lesson chat message")
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        conn.close()
+
+
+def get_lesson_chat_messages(session_id, user_id, limit=60):
+    """Return the latest lesson messages in display order, scoped by owner."""
+    conn = get_db_connection()
+    cursor = None
+    try:
+        if USE_POSTGRES:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+        else:
+            cursor = conn.cursor()
+        placeholder = "%s" if USE_POSTGRES else "?"
+        cursor.execute(
+            f"SELECT id, role, content, created_at FROM lesson_chat_messages WHERE lesson_id = {placeholder} AND user_id = {placeholder} ORDER BY id DESC LIMIT {placeholder}",
+            (session_id, str(user_id), limit),
+        )
+        rows = list(reversed(cursor.fetchall()))
+        result = []
+        for row in rows:
+            item = dict(row)
+            if hasattr(item.get("created_at"), "isoformat"):
+                item["created_at"] = item["created_at"].isoformat()
+            result.append(item)
+        return result
+    finally:
+        if cursor is not None:
+            cursor.close()
+        conn.close()

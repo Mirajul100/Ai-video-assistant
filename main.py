@@ -21,8 +21,8 @@ from utils.pdf_upload import InvalidDocumentError, SUPPORTED_DOCUMENT_EXTENSIONS
 from core.transcribe_gemini import transcribe_chunks, combine_transcript_text
 from core.summerize import summarize_transcript, generate_title
 from core.extractor import extract_key_points, extract_questions
-from core.reg_engine import build_reg_chain, load_reg_chain, ask_question as run_ask_question, clear_chat_memory
-from core.data_base import check_db_connection, init_db, save_lesson, get_user_history, get_lesson_by_id
+from core.reg_engine import build_reg_chain, load_reg_chain, ask_question as run_ask_question, clear_chat_memory, restore_chat_memory
+from core.data_base import check_db_connection, init_db, save_lesson, get_user_history, get_lesson_by_id, get_lesson_chat_messages, save_lesson_chat_message
 from core.auth import auth_router, decode_access_token, migrate_legacy_auth_users
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
@@ -211,6 +211,9 @@ def fetch_lesson(session_id: str, user_id: str = Depends(get_current_user)):
                 logger.exception("Failed to load lesson chain.")
                 raise HTTPException(500, "Failed to load lesson. Please try again.")
         remove_oldest_session()
+    chat_messages = get_lesson_chat_messages(session_id, user_id)
+    restore_chat_memory(session_id, chat_messages)
+    lesson["chat_messages"] = chat_messages
     return lesson
 
 @app.post("/process", response_model=ProcessResponse)
@@ -379,11 +382,17 @@ async def ask(payload: AskRequest, user_id: str = Depends(get_current_user)):
         raise HTTPException(404, "Session not found.")
 
     try:
+        await asyncio.to_thread(
+            save_lesson_chat_message, session_id, user_id, "user", question
+        )
         answer = await asyncio.to_thread(
             run_ask_question,
             session["reg_chain"],
             question,
             session_id
+        )
+        await asyncio.to_thread(
+            save_lesson_chat_message, session_id, user_id, "assistant", str(answer)
         )
         return AskResponse(success=True, answer=str(answer))
     except Exception as e:

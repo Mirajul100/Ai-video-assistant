@@ -62,7 +62,17 @@ function applyLessonData(data, sourceUrl) {
   renderQuestions();
   renderTranscript();
   
-  if (typeof window.renderChatEmpty === 'function') window.renderChatEmpty();
+  if (Array.isArray(data.chat_messages) && data.chat_messages.length) {
+    const chatContainer = document.getElementById("chatMessages");
+    if (chatContainer) chatContainer.replaceChildren();
+    data.chat_messages.forEach((message) => {
+      if (typeof window.appendMessage === "function") {
+        window.appendMessage(message.role === "user" ? "user" : "ai", message.content || "");
+      }
+    });
+  } else if (typeof window.renderChatEmpty === 'function') {
+    window.renderChatEmpty();
+  }
   if (typeof window.enableChatInput === 'function') window.enableChatInput(true);
   if (typeof window.fetchHistory === 'function') window.fetchHistory();
 }
