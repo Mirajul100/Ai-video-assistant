@@ -142,6 +142,73 @@ function renderDashboardLesson() {
   if (qkQ) qkQ.textContent = `${lesson.questions.length} question${lesson.questions.length === 1 ? "" : "s"} to explore`;
 }
 
+function renderMarkdownInline(value) {
+  return escapeHtml(value)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__([^_]+)__/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replace(/_([^_]+)_/g, "<em>$1</em>");
+}
+
+function renderSummaryMarkup(summary) {
+  const lines = String(summary || "").replace(/\r\n?/g, "\n").split("\n");
+  const blocks = [];
+  let paragraph = [];
+  let listType = null;
+  let listItems = [];
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    blocks.push(`<p>${renderMarkdownInline(paragraph.join(" "))}</p>`);
+    paragraph = [];
+  };
+
+  const flushList = () => {
+    if (!listType) return;
+    blocks.push(`<${listType}>${listItems.map((item) => `<li>${renderMarkdownInline(item)}</li>`).join("")}</${listType}>`);
+    listType = null;
+    listItems = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const heading = trimmed.match(/^#{1,6}\s+(.+)$/);
+    const unorderedItem = trimmed.match(/^(?:[-*+]|\u2022)\s+(.+)$/);
+    const orderedItem = trimmed.match(/^\d+[.)]\s+(.+)$/);
+
+    if (!trimmed) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    if (heading) {
+      flushParagraph();
+      flushList();
+      blocks.push(`<h3>${renderMarkdownInline(heading[1])}</h3>`);
+      continue;
+    }
+
+    const item = unorderedItem || orderedItem;
+    if (item) {
+      flushParagraph();
+      const nextListType = unorderedItem ? "ul" : "ol";
+      if (listType && listType !== nextListType) flushList();
+      listType = nextListType;
+      listItems.push(item[1]);
+      continue;
+    }
+
+    flushList();
+    paragraph.push(trimmed);
+  }
+
+  flushParagraph();
+  flushList();
+  return blocks.join("");
+}
+
 function renderSummary() {
   const lesson = state.lesson;
   const empty = document.getElementById("summaryEmpty");
@@ -160,7 +227,9 @@ function renderSummary() {
   const toggleBtn = document.getElementById("toggleSummaryBtn");
   
   if (title) title.textContent = lesson.title;
-  if (text) text.textContent = lesson.summary || "No summary was returned for this lesson.";
+  if (text) {
+    text.innerHTML = renderSummaryMarkup(lesson.summary || "No summary was returned for this lesson.");
+  }
   
   if (toggleBtn) {
     toggleBtn.setAttribute("aria-expanded", "false");
@@ -196,8 +265,8 @@ function renderKeyPoints() {
       .map(
         (kp, i) => `<article class="keypoint-card">
           <span class="keypoint-card__index">${String(i + 1).padStart(2, "0")}</span>
-          <h3 class="keypoint-card__title">${escapeHtml(kp.title)}</h3>
-          <p class="keypoint-card__desc">${escapeHtml(kp.desc)}</p>
+          <h3 class="keypoint-card__title">${renderMarkdownInline(kp.title)}</h3>
+          <div class="keypoint-card__desc">${renderSummaryMarkup(kp.desc)}</div>
         </article>`
       )
       .join("");

@@ -1,3 +1,4 @@
+from functools import lru_cache
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
@@ -8,6 +9,7 @@ CHROMA_DIR = str(Path(__file__).resolve().parent.parent / "vector_db")
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 COLLECTION_NAME = "video_transcripts"
 
+@lru_cache(maxsize=1)
 def get_embeddings():
     return HuggingFaceEmbeddings(
         model_name=EMBEDDING_MODEL_NAME,

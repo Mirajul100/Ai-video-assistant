@@ -20,13 +20,28 @@
 
 .topbar__left { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .topbar__title {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  min-width: 0;
+}
+.topbar__title-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+.topbar__title-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.topbar__title-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.topbar__menu-btn { display: none; }
+.topbar .topbar__menu-btn { display: none; }
 
 .topbar__right { display: flex; align-items: center; gap: 6px; }
 .topbar__action-wrap { position: relative; }

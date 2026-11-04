@@ -17,7 +17,9 @@ function countMathDelimiters(text, target) {
   let count = 0;
   for (let cursor = 0; cursor < text.length;) {
     if (!isEscapedMathCharacter(text, cursor) && text.startsWith(target, cursor) &&
-        (target !== "$" || (text[cursor - 1] !== "$" && text[cursor + 1] !== "$"))) {
+        (target !== "$" ||
+          (text[cursor - 1] !== "$" && text[cursor + 1] !== "$" &&
+            !/\d/.test(text[cursor + 1] || "")))) {
       count += 1;
       cursor += target.length;
     } else {
@@ -97,6 +99,12 @@ function preprocessMathJaxText(text) {
           (discardOrphanCloser !== "$" || (part[cursor - 1] !== "$" && part[cursor + 1] !== "$"))) {
         cursor += discardOrphanCloser.length;
         discardOrphanCloser = null;
+        continue;
+      }
+
+      if (part[cursor] === "$" && /\d/.test(part[cursor + 1] || "")) {
+        result += "\\$";
+        cursor += 1;
         continue;
       }
 

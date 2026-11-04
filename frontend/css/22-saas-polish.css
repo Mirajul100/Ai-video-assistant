@@ -42,7 +42,7 @@ body {
 }
 .sidebar {
   padding: 18px 14px;
-  transition: width var(--dur-med) var(--ease);
+  transition: width var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
 }
 .sidebar__brand {
   padding: 4px 8px 22px;

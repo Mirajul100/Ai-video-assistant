@@ -56,6 +56,20 @@ app.include_router(auth_router)
 security = HTTPBearer(auto_error=False)
 sessions, MAX_SESSIONS = {}, 50
 MAX_DOCUMENT_UPLOAD_BYTES = 50 * 1024 * 1024
+MAX_CONCURRENT_PROCESSING = int(os.getenv("LUMEN_MAX_PROCESSING_JOBS", "1"))
+if MAX_CONCURRENT_PROCESSING < 1:
+    raise RuntimeError("LUMEN_MAX_PROCESSING_JOBS must be at least 1.")
+processing_slots = asyncio.Semaphore(MAX_CONCURRENT_PROCESSING)
+
+
+async def acquire_processing_slot() -> None:
+    if processing_slots.locked():
+        raise HTTPException(
+            status_code=503,
+            detail="The server is busy processing another lesson. Please try again shortly.",
+            headers={"Retry-After": "30"},
+        )
+    await processing_slots.acquire()
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not credentials:
@@ -225,6 +239,7 @@ async def process_video(payload: ProcessRequest, user_id: str = Depends(get_curr
         raise HTTPException(400, "A video URL is required.")
     validate_youtube_url(url)
     require_gemini_configuration()
+    await acquire_processing_slot()
 
     chunks = []
     try:
@@ -283,6 +298,7 @@ async def process_video(payload: ProcessRequest, user_id: str = Depends(get_curr
         raise HTTPException(500, "Video processing failed. Please try again.")
     finally:
         cleanup_files(chunks)
+        processing_slots.release()
 
 @app.post("/process-document", response_model=ProcessResponse)
 async def process_document(file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
@@ -298,6 +314,7 @@ async def process_document(file: UploadFile = File(...), user_id: str = Depends(
 
     DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
     path = DOWNLOADS_DIR / f"{uuid.uuid4().hex}_{Path(file.filename).name}"
+    await acquire_processing_slot()
 
     try:
         with open(path, "wb") as buffer:
@@ -360,6 +377,7 @@ async def process_document(file: UploadFile = File(...), user_id: str = Depends(
     finally:
         await file.close()
         cleanup_files([str(path)])
+        processing_slots.release()
 
 @app.post("/ask", response_model=AskResponse)
 async def ask(payload: AskRequest, user_id: str = Depends(get_current_user)):

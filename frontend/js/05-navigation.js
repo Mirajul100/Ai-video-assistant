@@ -9,6 +9,17 @@ const VIEW_TITLES = {
   settings: "Settings",
 };
 
+const VIEW_ICONS = {
+  dashboard: "grid",
+  upload: "pdfvideo",
+  transcript: "doc",
+  summary: "layers",
+  keypoints: "star",
+  questions: "question",
+  "ask-ai": "chat",
+  settings: "gear",
+};
+
 function setActiveView(viewName) {
   try {
     if (!VIEW_TITLES[viewName]) return;
@@ -35,7 +46,10 @@ function setActiveView(viewName) {
     });
     
     const titleEl = document.querySelector("#topbarTitle");
-    if (titleEl) titleEl.textContent = VIEW_TITLES[viewName];
+    if (titleEl) {
+      const icon = typeof ICONS !== "undefined" ? ICONS[VIEW_ICONS[viewName]] : "";
+      titleEl.innerHTML = `<span class="topbar__title-icon" aria-hidden="true">${icon}</span><span class="topbar__title-text">${VIEW_TITLES[viewName]}</span>`;
+    }
     
     if (typeof closeSidebarMobile === 'function') closeSidebarMobile();
     if (typeof closeDropdowns === 'function') closeDropdowns();

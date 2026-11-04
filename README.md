@@ -97,6 +97,7 @@ The backend loads `.env` from the repository directory.
 | `DATABASE_URL` | Optional PostgreSQL connection URL. Without it, the app uses SQLite. |
 | `SQLITE_PATH` | Optional SQLite database path; defaults to `lumen.db` in the repository directory. Parent directories are created automatically. |
 | `CORS_ORIGINS` | Comma-separated allowed browser origins. Defaults include localhost ports 5500 and 8000. |
+| `LUMEN_MAX_PROCESSING_JOBS` | Maximum simultaneous video/document processing jobs per worker; defaults to `1` to limit memory use on small instances. |
 | `YTDLP_JS_RUNTIME` | Optional runtime selection: `deno`, `node`, `bun`, or `quickjs`. Blank means auto-detect. |
 | `YTDLP_JS_RUNTIME_PATH` | Optional full path to the selected JavaScript runtime executable. |
 | `YOUTUBE_COOKIES` | Optional path to a Netscape-format cookie file for restricted videos. |
@@ -208,6 +209,9 @@ fails; check the backend log for the detailed server-side exception.
 - The current in-memory session registry is limited to 50 recent sessions and
   is not shared across multiple worker processes. Use a shared session store
   before running multiple workers.
+- Processing concurrency is limited per worker by `LUMEN_MAX_PROCESSING_JOBS`;
+  keep one Uvicorn worker on memory-constrained instances. Increasing workers
+  also multiplies each worker's model memory.
 - The container runs as a non-root user and excludes local `.env`, cookie,
   database, and key files from the build context. Inject secrets at runtime.
 - AI and YouTube features depend on third-party services, network access, valid

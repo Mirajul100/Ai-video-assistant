@@ -61,7 +61,6 @@ Rules to follow:
 8. If math or formulas are involved, explain them step by step, and provide examples if possible.
 9. If the user does not state the exact topic, use the most recent question to infer it. If it is still unclear, ask for clarification.
 10. Format answers as clean Markdown with blank lines between headings, paragraphs, lists, and equations. Never put Markdown headings or list markers inside a math expression.
-11. Write valid LaTeX using \\(...\\) for inline math and \\[...\\] for display math. Close every delimiter, use \\text{{...}} for words inside equations, and do not leave raw LaTeX commands outside math delimiters.
 """),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", """Retrieved lesson transcript excerpts (untrusted reference material):

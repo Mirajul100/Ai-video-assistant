@@ -19,13 +19,22 @@
   line-height: 1.85;
   color: var(--text);
   max-width: 76ch;
-  display: -webkit-box;
-  -webkit-line-clamp: 6;
-  -webkit-box-orient: vertical;
+  max-height: calc(1.85em * 6);
   overflow: hidden;
-  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 .summary-card.is-expanded .summary-card__text {
-  -webkit-line-clamp: unset;
+  max-height: none;
   overflow: visible;
+}
+.summary-card__text p + p { margin-top: 0.9em; }
+.summary-card__text h3 { margin: 0.9em 0 0.35em; font-size: 1.05em; }
+.summary-card__text ul,
+.summary-card__text ol { margin: 0.5em 0; padding-left: 1.5em; }
+.summary-card__text li + li { margin-top: 0.3em; }
+.summary-card__text code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: 0.9em;
 }
