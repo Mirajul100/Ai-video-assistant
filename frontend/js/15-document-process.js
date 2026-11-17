@@ -172,6 +172,9 @@ function forceHideProcessingUI() {
 
 async function beginDocumentProcessing(file) {
   if (typeof resetSteps === 'function') resetSteps(); 
+  if (typeof window.setResultLoadingState === "function") {
+    window.setResultLoadingState(true);
+  }
   
   // Set UI to loading state
   const uploadIdleState = document.getElementById("uploadIdleState");
@@ -231,6 +234,9 @@ async function beginDocumentProcessing(file) {
 
     // VERY IMPORTANT: We force hide the UI *before* triggering the other scripts
     forceHideProcessingUI();
+    if (typeof window.setResultLoadingState === "function") {
+      window.setResultLoadingState(false);
+    }
 
     // Safely attempt to apply the lesson data. 
     // If loading a recent lesson previously broke this, this try/catch prevents it from breaking the upload UI.
@@ -251,6 +257,9 @@ async function beginDocumentProcessing(file) {
   } catch (err) {
     clearInterval(simTimer);
     forceHideProcessingUI(); // Ensure loading UI is hidden
+    if (typeof window.setResultLoadingState === "function") {
+      window.setResultLoadingState(false);
+    }
     
     if (typeof failAtCurrentStep === 'function') failAtCurrentStep(); 
     if (typeof updateSidebarChip === 'function') updateSidebarChip("error", "Processing failed");

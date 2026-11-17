@@ -34,6 +34,53 @@ function normalizeTranscript(raw) {
     .map((line) => ({ time: null, text: line }));
 }
 
+function setResultLoadingState(isLoading) {
+  const sections = {
+    transcript: ["transcriptEmpty", "transcriptSkeleton", "transcriptContent"],
+    summary: ["summaryEmpty", "summarySkeleton", "summaryContent"],
+    keypoints: ["keypointsEmpty", "keypointsSkeleton", "keypointsGrid"],
+    questions: ["questionsEmpty", "questionsSkeleton", "questionsList", "questionsIntro"],
+  };
+
+  Object.entries(sections).forEach(([name, ids]) => {
+    const view = document.getElementById(`view-${name}`);
+    const [emptyId, skeletonId, contentId, introId] = ids;
+    const empty = document.getElementById(emptyId);
+    const skeleton = document.getElementById(skeletonId);
+    const content = document.getElementById(contentId);
+    const intro = introId ? document.getElementById(introId) : null;
+
+    if (view) view.setAttribute("aria-busy", String(isLoading));
+    if (isLoading) {
+      if (empty) empty.hidden = true;
+      if (skeleton) skeleton.hidden = false;
+      if (content) content.hidden = true;
+      if (intro) intro.hidden = true;
+      if (name === "summary") {
+        const summaryText = document.getElementById("summaryText");
+        if (summaryText) summaryText.textContent = "";
+      }
+      if (name === "transcript") {
+        const transcriptBody = document.getElementById("transcriptBody");
+        if (transcriptBody) transcriptBody.textContent = "";
+      }
+      if (name === "keypoints" || name === "questions") {
+        if (content) content.replaceChildren();
+      }
+    } else {
+      if (skeleton) skeleton.hidden = true;
+      if (state.lesson) {
+        if (name === "transcript") renderTranscript();
+        if (name === "summary") renderSummary();
+        if (name === "keypoints") renderKeyPoints();
+        if (name === "questions") renderQuestions();
+      } else if (empty) {
+        empty.hidden = false;
+      }
+    }
+  });
+}
+
 function applyLessonData(data, sourceUrl) {
   const transcriptSegments = normalizeTranscript(data.transcript);
   const fullTranscriptText = transcriptSegments.map((s) => s.text).join(" ");
@@ -42,13 +89,16 @@ function applyLessonData(data, sourceUrl) {
   state.lastProcessedUrl = sourceUrl;
   state.videoId = typeof extractYoutubeId === 'function' ? extractYoutubeId(sourceUrl) : null;
 
+  const keyPoints = Array.isArray(data.key_points) ? data.key_points : [];
+  const questions = Array.isArray(data.questions) ? data.questions : [];
+
   state.lesson = {
     title: data.title || "Untitled lesson",
     transcriptSegments,
     transcriptText: fullTranscriptText,
     summary: data.summary || "",
-    keyPoints: (data.key_points || []).map(normalizeKeyPoint),
-    questions: (data.questions || []).map(normalizeQuestion),
+    keyPoints: keyPoints.map(normalizeKeyPoint),
+    questions: questions.map(normalizeQuestion),
     sourceUrl,
     videoId: state.videoId,
     wordCount: typeof wordCount === 'function' ? wordCount(fullTranscriptText) : 0,
@@ -386,6 +436,7 @@ function paintTranscriptBody(query) {
 }
 
 window.applyLessonData = applyLessonData;
+window.setResultLoadingState = setResultLoadingState;
 window.renderDashboardLesson = renderDashboardLesson;
 window.renderSummary = renderSummary;
 window.renderKeyPoints = renderKeyPoints;

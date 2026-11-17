@@ -6,19 +6,24 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from .vector_store import get_retriever, load_vector_store, create_vector_store
 from dotenv import load_dotenv
 import os
+from functools import lru_cache
 
 load_dotenv()
 
 MODEL = os.getenv("GEMINI_MODEL1", "").strip() or "gemini-3.6-flash"
 API_KEY = os.getenv("GEMINI_API_KEY")
+MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "2"))
+MAX_OUTPUT_TOKENS = int(os.getenv("GEMINI_CHAT_MAX_OUTPUT_TOKENS", "1536"))
 
 
+@lru_cache(maxsize=1)
 def get_llm():
     return ChatGoogleGenerativeAI(
         model=MODEL,
         api_key=API_KEY,
         temperature=0.4,
-        max_retries=5
+        max_retries=MAX_RETRIES,
+        max_output_tokens=MAX_OUTPUT_TOKENS,
     )
 
 chat_memory = {}
@@ -113,3 +118,23 @@ def ask_question(reg_chain, question, session_id):
     history.clear()
     history.add_messages(recent_messages + [HumanMessage(content=question), AIMessage(content=answer)])
     return answer
+
+async def stream_question(reg_chain, question, session_id):
+    history = get_chat_history(session_id)
+    recent_messages = history.messages[-12:]
+    answer_parts = []
+
+    async for chunk in reg_chain.astream({
+        "question": question,
+        "chat_history": recent_messages
+    }):
+        text = str(chunk)
+        if text:
+            answer_parts.append(text)
+            yield text
+
+    answer = "".join(answer_parts)
+    history.clear()
+    history.add_messages(
+        recent_messages + [HumanMessage(content=question), AIMessage(content=answer)]
+    )

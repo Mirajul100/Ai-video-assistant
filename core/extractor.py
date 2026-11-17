@@ -2,6 +2,7 @@ from .summerize import get_llm
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough , RunnableLambda
+from functools import lru_cache
 
 def build_chain(system_prompts:str):
     llm = get_llm()
@@ -11,6 +12,7 @@ def build_chain(system_prompts:str):
     ]) | llm | StrOutputParser()
     return system
 
+@lru_cache(maxsize=4)
 def extract_key_points(transcript: str) -> str:
     system_prompts =  """You are an expert lesson analyst Analyze the lesson transcript and provide:
     - small description
@@ -24,6 +26,7 @@ def extract_key_points(transcript: str) -> str:
     return chain.invoke(transcript)
 
 
+@lru_cache(maxsize=4)
 def extract_questions(transcript: str) -> str:
     system_prompts = """You are an expert lesson analyst. Analyze the lesson transcript and generate a list of questions that can be used to assess understanding of the lesson. 
     - Include a variety of question types (short answer, medium answer etc.)

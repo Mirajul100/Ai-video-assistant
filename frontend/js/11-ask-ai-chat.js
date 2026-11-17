@@ -64,12 +64,59 @@ function appendMessage(role, text) {
   if (role === "ai") {
     wrap.querySelector(".message__copy-btn").addEventListener("click", async (e) => {
       e.preventDefault();
-      if (typeof copyToClipboard === 'function') await copyToClipboard(text);
+      if (typeof copyToClipboard === 'function') {
+        await copyToClipboard(wrap.querySelector(".message__bubble").textContent);
+      }
       if (typeof showToast === 'function') showToast("Answer copied.", "success");
     });
   }
 
   return wrap;
+}
+
+function appendStreamedMessage() {
+  const wrap = appendMessage("ai", "");
+  const bubble = wrap.querySelector(".message__bubble");
+  let pendingText = "";
+  let frameId = null;
+  let finishResolver = null;
+
+  const renderFrame = () => {
+    frameId = null;
+    if (pendingText) {
+      const characters = Math.min(12, Math.max(1, Math.ceil(pendingText.length / 3)));
+      bubble.textContent += pendingText.slice(0, characters);
+      pendingText = pendingText.slice(characters);
+      const chatMessages = document.getElementById("chatMessages");
+      if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+      frameId = requestAnimationFrame(renderFrame);
+    } else if (finishResolver) {
+      const resolve = finishResolver;
+      finishResolver = null;
+      resolve();
+    }
+  };
+
+  const scheduleRender = () => {
+    if (frameId === null) frameId = requestAnimationFrame(renderFrame);
+  };
+
+  return {
+    append(text) {
+      pendingText += text;
+      scheduleRender();
+    },
+    finish() {
+      if (!pendingText && frameId === null) return Promise.resolve();
+      return new Promise((resolve) => {
+        finishResolver = resolve;
+        scheduleRender();
+      });
+    },
+    get text() {
+      return bubble.textContent + pendingText;
+    }
+  };
 }
 
 function showTypingIndicator() {
@@ -110,9 +157,20 @@ async function sendChatMessage(question) {
       hideTypingIndicator();
       appendMessage("ai", `This is a sample lesson, so I can't generate a real answer to "${text}." Process an actual YouTube video and I'll answer using only that video's transcript.`);
     } else {
-      const answer = await callAskAPI(text);
+      let streamedMessage;
+      await callAskAPIStream(text, (chunk) => {
+        if (!streamedMessage) {
+          hideTypingIndicator();
+          streamedMessage = appendStreamedMessage();
+        }
+        streamedMessage.append(chunk);
+      });
       hideTypingIndicator();
-      appendMessage("ai", answer || "I couldn't find anything about that in the lesson transcript.");
+      if (!streamedMessage) {
+        streamedMessage = appendStreamedMessage();
+        streamedMessage.append("I couldn't find anything about that in the lesson transcript.");
+      }
+      await streamedMessage.finish();
     }
     
     const unreadDot = document.getElementById("chatUnreadDot");
@@ -160,6 +218,77 @@ async function callAskAPI(question) {
     throw { friendly: "The assistant sent back something unexpected. Try asking again." };
   }
   return data.answer;
+}
+
+async function callAskAPIStream(question, onChunk) {
+  if (typeof state === 'undefined' || !state.sessionId) {
+    throw { friendly: "Process a video first, then ask questions about it." };
+  }
+
+  let response;
+  try {
+    response = await window.authenticatedFetch(`${state.apiBase}/ask/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: state.sessionId, question }),
+    });
+  } catch (networkErr) {
+    throw { friendly: "Can't reach the server right now. Check your connection and try again." };
+  }
+  if (response.status === 401) {
+    throw { friendly: "Please log in to ask questions about a lesson." };
+  }
+  if (response.status === 404) {
+    throw { friendly: "This lesson's session has expired on the server. Process the video again." };
+  }
+  if (!response.ok || !response.body) {
+    throw { friendly: "The assistant couldn't answer that. Try asking again." };
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let completed = false;
+
+  const processEvent = (eventText) => {
+    let eventName = "message";
+    let dataText = "";
+    eventText.split(/\r?\n/).forEach((line) => {
+      if (line.startsWith("event:")) eventName = line.slice(6).trim();
+      if (line.startsWith("data:")) dataText += line.slice(5).trim();
+    });
+    if (eventName === "done") {
+      completed = true;
+      return;
+    }
+    if (eventName === "error") {
+      let payload = {};
+      try { payload = JSON.parse(dataText); } catch (e) {}
+      throw { friendly: payload.message || "The assistant couldn't answer that. Try asking again." };
+    }
+    if (dataText) {
+      try {
+        const payload = JSON.parse(dataText);
+        if (payload.chunk) onChunk(payload.chunk);
+      } catch (e) {
+        throw { friendly: "The assistant sent back something unexpected. Try asking again." };
+      }
+    }
+  };
+
+  while (!completed) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    let separator;
+    while ((separator = buffer.search(/\r?\n\r?\n/)) !== -1) {
+      const eventText = buffer.slice(0, separator);
+      const separatorLength = buffer.slice(separator).startsWith("\r\n\r\n") ? 4 : 2;
+      buffer = buffer.slice(separator + separatorLength);
+      processEvent(eventText);
+    }
+    if (done) break;
+  }
+  if (buffer.trim()) processEvent(buffer);
 }
 
 function autoResizeChatInput() {

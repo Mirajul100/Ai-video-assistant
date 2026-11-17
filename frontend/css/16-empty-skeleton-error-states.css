@@ -32,3 +32,105 @@
 .skeleton--block { height: 220px; border-radius: var(--r-lg); }
 .skeleton--card { height: 150px; border-radius: var(--r-lg); }
 .w-30 { width: 30%; } .w-40 { width: 40%; } .w-70 { width: 70%; } .w-80 { width: 80%; } .w-90 { width: 90%; } .w-100 { width: 100%; }
+
+#transcriptSkeleton,
+#summarySkeleton,
+#questionsSkeleton {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-solid);
+}
+#transcriptSkeleton .skeleton--block { height: 280px; margin-top: 20px; }
+#summarySkeleton .skeleton--line { height: 16px; margin-bottom: 16px; }
+#questionsSkeleton .skeleton--line { height: 54px; margin-bottom: 10px; border-radius: var(--r-md); }
+#keypointsSkeleton { min-height: 150px; }
+
+.view.is-boot-loading > :not(.boot-skeleton) {
+  display: none !important;
+}
+.boot-skeleton {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 900px);
+  min-height: 280px;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 56px);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-solid);
+}
+.boot-skeleton__eyebrow {
+  width: 22%;
+  height: 10px;
+  margin-bottom: 18px;
+}
+.boot-skeleton__title {
+  width: 58%;
+  height: 30px;
+  margin-bottom: 22px;
+}
+.boot-skeleton__line {
+  width: 92%;
+  height: 14px;
+  margin-bottom: 12px;
+}
+.boot-skeleton__line--short { width: 68%; }
+.boot-skeleton__panel {
+  width: 100%;
+  height: 130px;
+  margin-top: 20px;
+  border-radius: var(--r-md);
+}
+
+.sidebar.is-boot-loading > :not(.sidebar-boot-skeleton),
+.topbar.is-boot-loading > :not(.topbar-boot-skeleton) {
+  display: none !important;
+}
+.sidebar-boot-skeleton {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 10px;
+}
+.sidebar-boot-skeleton__brand {
+  width: 136px;
+  height: 32px;
+  margin-bottom: 22px;
+  border-radius: 9px;
+}
+.sidebar-boot-skeleton__line {
+  width: 100%;
+  height: 38px;
+  border-radius: var(--r-sm);
+}
+.sidebar-boot-skeleton__history {
+  width: 88%;
+  height: 92px;
+  margin-top: auto;
+  border-radius: var(--r-md);
+}
+.topbar-boot-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 0 24px;
+}
+.topbar-boot-skeleton__title {
+  width: 150px;
+  height: 20px;
+  margin-right: auto;
+}
+.topbar-boot-skeleton__control {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+}
+.topbar-boot-skeleton__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}

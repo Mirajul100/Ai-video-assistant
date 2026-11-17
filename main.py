@@ -1,4 +1,4 @@
-import asyncio, logging, uuid, uvicorn
+import asyncio, json, logging, uuid, uvicorn
 import os
 import re
 from urllib.parse import parse_qs, urlsplit
@@ -10,7 +10,7 @@ load_dotenv(BASE_DIR / ".env")
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -21,7 +21,14 @@ from utils.pdf_upload import InvalidDocumentError, SUPPORTED_DOCUMENT_EXTENSIONS
 from core.transcribe_gemini import transcribe_chunks, combine_transcript_text
 from core.summerize import summarize_transcript, generate_title
 from core.extractor import extract_key_points, extract_questions
-from core.reg_engine import build_reg_chain, load_reg_chain, ask_question as run_ask_question, clear_chat_memory, restore_chat_memory
+from core.reg_engine import (
+    build_reg_chain,
+    load_reg_chain,
+    ask_question as run_ask_question,
+    stream_question,
+    clear_chat_memory,
+    restore_chat_memory,
+)
 from core.data_base import check_db_connection, init_db, save_lesson, get_user_history, get_lesson_by_id, get_lesson_chat_messages, save_lesson_chat_message
 from core.auth import auth_router, decode_access_token, migrate_legacy_auth_users
 
@@ -416,6 +423,56 @@ async def ask(payload: AskRequest, user_id: str = Depends(get_current_user)):
     except Exception as e:
         logger.exception("Question answering failed.")
         raise HTTPException(500, "Unable to answer this question right now.")
+
+@app.post("/ask/stream")
+async def ask_stream(payload: AskRequest, user_id: str = Depends(get_current_user)):
+    if not user_id:
+        raise HTTPException(401, "Not authenticated.")
+
+    session_id = payload.session_id.strip()
+    question = payload.question.strip()
+    if not session_id:
+        raise HTTPException(400, "Session ID is required.")
+    if not question:
+        raise HTTPException(400, "Question is required.")
+    if not await asyncio.to_thread(get_lesson_by_id, session_id, user_id):
+        raise HTTPException(404, "Lesson not found.")
+
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(404, "Session not found.")
+
+    await asyncio.to_thread(
+        save_lesson_chat_message, session_id, user_id, "user", question
+    )
+
+    async def events():
+        answer_parts = []
+        try:
+            async for chunk in stream_question(session["reg_chain"], question, session_id):
+                answer_parts.append(chunk)
+                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+            await asyncio.to_thread(
+                save_lesson_chat_message,
+                session_id,
+                user_id,
+                "assistant",
+                "".join(answer_parts),
+            )
+            yield "event: done\ndata: {}\n\n"
+        except Exception:
+            logger.exception("Streaming question answering failed.")
+            yield (
+                "event: error\ndata: "
+                + json.dumps({"message": "Unable to answer this question right now."})
+                + "\n\n"
+            )
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

@@ -50,6 +50,9 @@
 
   async function beginProcessing(url) {
     resetSteps();
+    if (typeof window.setResultLoadingState === "function") {
+      window.setResultLoadingState(true);
+    }
     const uploadIdleState = $("#uploadIdleState");
     const processingCard = $("#processingCard");
     const processingErrorCard = $("#processingErrorCard");
@@ -129,6 +132,9 @@
       clearInterval(simTimer);
       state.processing.active = false;
       state.pendingTargetView = null;
+      if (typeof window.setResultLoadingState === "function") {
+        window.setResultLoadingState(false);
+      }
       failAtCurrentStep();
       updateSidebarChip("error", "Processing failed");
       const message =

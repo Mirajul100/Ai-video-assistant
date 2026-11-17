@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+  let lessonLoadRequest = 0;
 
   function initHistory() {
     if (window.__lumenHistoryInitialized) return;
@@ -16,6 +17,7 @@
   async function fetchHistory() {
     if (!localStorage.getItem("lumen_token")) return;
 
+    showHistorySkeleton();
     try {
       const response = await window.authenticatedFetch(`${state.apiBase}/history`);
       const data = await response.json().catch(() => ({}));
@@ -25,7 +27,36 @@
       renderHistory(Array.isArray(data.history) ? data.history : []);
     } catch (error) {
       console.error("Failed to fetch history:", error);
+      renderHistoryMessage("Could not load recent lessons");
     }
+  }
+
+  function showHistorySkeleton() {
+    const list = document.getElementById("sidebarHistoryList");
+    if (!list) return;
+    list.innerHTML = "";
+    for (let index = 0; index < 3; index += 1) {
+      const row = document.createElement("li");
+      row.innerHTML = `
+        <div class="history-skeleton" aria-hidden="true">
+          <span class="skeleton history-skeleton__icon"></span>
+          <span class="skeleton history-skeleton__label"></span>
+        </div>`;
+      list.append(row);
+    }
+  }
+
+  function renderHistoryMessage(message) {
+    const list = document.getElementById("sidebarHistoryList");
+    if (!list) return;
+    list.textContent = "";
+    const row = document.createElement("li");
+    const button = document.createElement("button");
+    button.className = "nav-item nav-item--history";
+    button.disabled = true;
+    button.textContent = message;
+    row.append(button);
+    list.append(row);
   }
 
   function renderHistory(historyItems) {
@@ -71,6 +102,10 @@
   }
 
   async function loadSavedLesson(sessionId) {
+    const requestId = ++lessonLoadRequest;
+    if (typeof window.setResultLoadingState === "function") {
+      window.setResultLoadingState(true);
+    }
     if (typeof updateSidebarChip === "function") {
       updateSidebarChip("busy", "Loading lesson...");
     }
@@ -83,6 +118,7 @@
       if (!response.ok) {
         throw new Error(data.detail || "Could not load lesson data.");
       }
+      if (requestId !== lessonLoadRequest) return;
 
       if (typeof data.key_points === "string") {
         try {
@@ -103,12 +139,19 @@
       if (typeof window.applyLessonData === "function") {
         window.applyLessonData(data, null);
       }
+      if (typeof window.setResultLoadingState === "function") {
+        window.setResultLoadingState(false);
+      }
       if (typeof updateSidebarChip === "function") {
         updateSidebarChip("ready", data.title || "Lesson");
       }
       if (typeof setActiveView === "function") setActiveView("dashboard");
     } catch (error) {
+      if (requestId !== lessonLoadRequest) return;
       console.error("Load lesson failed:", error);
+      if (typeof window.setResultLoadingState === "function") {
+        window.setResultLoadingState(false);
+      }
       if (typeof showToast === "function") {
         showToast(error.message || "Failed to load the selected lesson.", "error");
       }

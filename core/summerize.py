@@ -5,23 +5,29 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
 import os
 import time
+from functools import lru_cache
 
 load_dotenv()
 
 
 MODEL = os.getenv("GEMINI_MODEL2", "").strip() or "gemini-3.5-flash-lite"
 API_KEY = os.getenv("GEMINI_API_KEY")
+MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "2"))
+MAX_OUTPUT_TOKENS = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "2048"))
 
 
+@lru_cache(maxsize=1)
 def get_llm():
     return ChatGoogleGenerativeAI(
         model=MODEL,
         api_key=API_KEY,
         temperature=0.4,
-        max_retries=5
+        max_retries=MAX_RETRIES,
+        max_output_tokens=MAX_OUTPUT_TOKENS,
     )
 
 
+@lru_cache(maxsize=4)
 def summarize_transcript(transcript: str) -> str:
     llm = get_llm()
 
@@ -173,6 +179,7 @@ def summarize_large_transcript(llm, transcript: str) -> str:
     }).strip()
 
 
+@lru_cache(maxsize=16)
 def generate_title(transcript: str) -> str:
 
     llm = get_llm()
