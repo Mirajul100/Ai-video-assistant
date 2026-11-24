@@ -91,7 +91,8 @@ The backend loads `.env` from the repository directory.
 | Variable | Purpose |
 | --- | --- |
 | `GEMINI_API_KEY` | Required for Gemini transcription and AI-generated lesson content. |
-| `GEMINI_MODEL1` | Optional Gemini model override used by the transcription/summarization modules. |
+| `GEMINI_MODEL1` | Optional Gemini model used for lesson Q&A and as a fallback when lesson generation is temporarily unavailable. |
+| `GEMINI_MODEL2` | Optional Gemini model used for YouTube transcription and generated lesson materials. |
 | `SECRET_KEY` | Required for authentication token signing. Use a private random value of at least 32 bytes. |
 | `GOOGLE_CLIENT_ID` | Optional Google OAuth 2.0 Web client ID; required for Google sign-in. |
 | `DATABASE_URL` | Optional PostgreSQL connection URL. Without it, the app uses SQLite. |
@@ -165,6 +166,7 @@ uses multipart form data. Protected endpoints require
 | `POST /process-document` | Yes | Processes one supported document upload. |
 | `GET /history` | Yes | Lists the current user's saved lessons. |
 | `GET /lesson/{session_id}` | Yes | Returns a saved lesson and restores its Q&A session. |
+| `DELETE /lesson/{session_id}/chat` | Yes | Clears saved Q&A messages for the current user's lesson. |
 | `POST /ask` | Yes | Answers a question about a saved lesson. |
 
 Example video request:

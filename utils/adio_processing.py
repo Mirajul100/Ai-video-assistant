@@ -372,16 +372,18 @@ def _decode_audio_with_ffmpeg(input_file: str) -> np.ndarray:
 def convert_audio_to_wav(input_file: str) -> str:
     path = Path(input_file)
     output = path.with_name(f"{path.stem}_{uuid.uuid4().hex}_converted.wav")
-    audio = decode_audio(str(path))
-
-    sf.write(
-        str(output),
-        audio,
-        SAMPLE_RATE,
-        subtype="PCM_16",
-    )
-
-    return str(output)
+    try:
+        audio = decode_audio(str(path))
+        sf.write(
+            str(output),
+            audio,
+            SAMPLE_RATE,
+            subtype="PCM_16",
+        )
+        return str(output)
+    except Exception:
+        output.unlink(missing_ok=True)
+        raise
 
 
 def split_audio_into_chunks(
@@ -392,26 +394,29 @@ def split_audio_into_chunks(
         raise ValueError("Chunk length must be greater than zero minutes.")
 
     path = Path(wav_file)
-    audio = decode_audio(str(path))
-
     chunk_size = SAMPLE_RATE * 60 * chunk_length_minutes
     chunks = []
     chunk_run_id = uuid.uuid4().hex
 
     try:
-        for i in range(0, len(audio), chunk_size):
-            chunk = audio[i:i + chunk_size]
-            output = path.with_name(
-                f"{path.stem}_{chunk_run_id}_chunk_{len(chunks) + 1}.wav"
-            )
-            chunks.append(str(output))
+        with sf.SoundFile(str(path)) as audio_file:
+            if audio_file.samplerate != SAMPLE_RATE or audio_file.channels != 1:
+                raise ValueError(
+                    "Audio must be converted to mono 16 kHz before chunking."
+                )
 
-            sf.write(
-                str(output),
-                chunk,
-                SAMPLE_RATE,
-                subtype="PCM_16",
-            )
+            while True:
+                chunk = audio_file.read(frames=chunk_size, dtype="int16")
+                if chunk.size == 0:
+                    break
+                output = path.with_name(
+                    f"{path.stem}_{chunk_run_id}_chunk_{len(chunks) + 1}.wav"
+                )
+                chunks.append(str(output))
+                sf.write(str(output), chunk, SAMPLE_RATE, subtype="PCM_16")
+
+        if not chunks:
+            raise ValueError("Could not split audio: stream was empty.")
     except Exception:
         for chunk in chunks:
             Path(chunk).unlink(missing_ok=True)

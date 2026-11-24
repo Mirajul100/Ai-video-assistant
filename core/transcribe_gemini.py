@@ -79,7 +79,7 @@ def combine_audio_chunks(
 def transcribe_single_chunk(
     chunk_path: str,
     chunk_index: int,
-    max_retries: int = 2
+    max_retries: int = 5
 ) -> Optional[Document]:
     """
     Upload and transcribe a single audio chunk.
@@ -151,20 +151,24 @@ def transcribe_single_chunk(
 
             error_message = str(e)
 
+            is_quota_exhausted = any(
+                marker in error_message.upper()
+                for marker in (
+                    "RESOURCE_EXHAUSTED",
+                    "QUOTA_EXCEEDED",
+                    "DAILY REQUESTS PER DAY LIMIT",
+                )
+            )
+
+            if is_quota_exhausted:
+                raise
+
             print(
                 f"Attempt {attempt + 1} failed for "
                 f"chunk {chunk_index}: {error_message}"
             )
 
-            is_temporary = any(
-                code in error_message
-                for code in [
-                    "503",
-                    "UNAVAILABLE",
-                    "429",
-                    "RESOURCE_EXHAUSTED"
-                ]
-            )
+            is_temporary = any(code in error_message for code in ("503", "UNAVAILABLE", "429"))
 
             if (
                 is_temporary
@@ -206,7 +210,7 @@ def transcribe_single_chunk(
 def transcribe_chunks_parallel(
     chunk_paths: List[str],
     max_workers: int = 3,
-    max_retries: int = 2
+    max_retries: int = 5
 ) -> List[Document]:
     """
     Transcribe audio chunks in parallel.
@@ -255,6 +259,15 @@ def transcribe_chunks_parallel(
                     failed_chunks.append(index + 1)
 
             except Exception as e:
+                error_message = str(e).upper()
+                if any(
+                    marker in error_message
+                    for marker in ("RESOURCE_EXHAUSTED", "QUOTA_EXCEEDED", "DAILY REQUESTS PER DAY LIMIT")
+                ):
+                    for pending in future_to_chunk:
+                        if pending is not future:
+                            pending.cancel()
+                    raise
                 failed_chunks.append(index + 1)
 
                 print(
@@ -291,7 +304,7 @@ def transcribe_chunks_parallel(
 def transcribe_chunks_batch(
     chunk_paths: List[str],
     batch_size: int = 5,
-    max_retries: int = 2
+    max_retries: int = 5
 ) -> List[Document]:
     """
     Combine multiple chunks into batches and transcribe
@@ -409,7 +422,7 @@ def transcribe_chunks(
 
     if mode == "smart":
 
-        if num_chunks <= 10:
+        if num_chunks <= 2:
             mode = "parallel"
         else:
             mode = "batch"

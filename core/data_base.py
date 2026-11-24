@@ -309,6 +309,30 @@ def save_lesson_chat_message(session_id, user_id, role, content):
         conn.close()
 
 
+def delete_lesson_chat_messages(session_id, user_id):
+    """Delete chat history only for the authenticated lesson owner."""
+    conn = get_db_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        placeholder = "%s" if USE_POSTGRES else "?"
+        cursor.execute(
+            f"DELETE FROM lesson_chat_messages WHERE lesson_id = {placeholder} AND user_id = {placeholder}",
+            (session_id, str(user_id)),
+        )
+        deleted = cursor.rowcount
+        conn.commit()
+        return deleted
+    except Exception:
+        conn.rollback()
+        logger.exception("Failed to clear lesson chat history")
+        raise
+    finally:
+        if cursor is not None:
+            cursor.close()
+        conn.close()
+
+
 def get_lesson_chat_messages(session_id, user_id, limit=60):
     """Return the latest lesson messages in display order, scoped by owner."""
     conn = get_db_connection()

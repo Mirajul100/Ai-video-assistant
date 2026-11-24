@@ -2,7 +2,10 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.output_parsers import PydanticOutputParser
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field, field_validator
+import logging
 import os
 import time
 from functools import lru_cache
@@ -11,20 +14,93 @@ load_dotenv()
 
 
 MODEL = os.getenv("GEMINI_MODEL2", "").strip() or "gemini-3.5-flash-lite"
+FALLBACK_MODEL = os.getenv("GEMINI_MODEL1", "").strip()
 API_KEY = os.getenv("GEMINI_API_KEY")
 MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "2"))
 MAX_OUTPUT_TOKENS = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "2048"))
+logger = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=1)
-def get_llm():
+class LessonKeyPoint(BaseModel):
+    title: str = Field(description="A short name for one key idea")
+    description: str = Field(description="A concise explanation supported by the source")
+
+
+class LessonMaterials(BaseModel):
+    title: str = Field(description="A short, accurate lesson title, at most 10 words")
+    summary: str = Field(description="A concise, clear summary of the source")
+    key_points: list[LessonKeyPoint] = Field(description="The most important ideas from the source")
+    questions: list[str] = Field(description="Questions that assess understanding of the source")
+
+    @field_validator("questions", mode="before")
+    @classmethod
+    def normalize_questions(cls, value):
+        """Accept question objects as well as strings returned by the model."""
+        if not isinstance(value, list):
+            return value
+
+        questions = []
+        for item in value:
+            if isinstance(item, dict):
+                item = item.get("question") or item.get("text") or item.get("q")
+            if item is not None and str(item).strip():
+                questions.append(str(item).strip())
+        return questions
+
+
+@lru_cache(maxsize=2)
+def get_llm(model: str = MODEL):
     return ChatGoogleGenerativeAI(
-        model=MODEL,
+        model=model,
         api_key=API_KEY,
         temperature=0.4,
         max_retries=MAX_RETRIES,
         max_output_tokens=MAX_OUTPUT_TOKENS,
     )
+
+
+def generate_lesson_materials(transcript: str) -> LessonMaterials:
+    """Generate all lesson outputs in one API call to conserve model quota.
+
+    Do not cache transcript inputs: long recordings would otherwise remain in
+    process memory after their request has completed.
+    """
+    if not transcript or not transcript.strip():
+        raise ValueError("Transcript is empty.")
+
+    parser = PydanticOutputParser(pydantic_object=LessonMaterials)
+    prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            """You are an AI lesson assistant. Analyze the provided source and return a title, summary, key points, and review questions.
+
+Use only information from the source. Do not invent facts or add outside knowledge. Keep the summary concise but complete. Provide up to 8 distinct key points and up to 8 useful questions. If the source does not support an item, leave that list empty.
+
+{format_instructions}""",
+        ),
+        ("human", "Source:\n{transcript}"),
+    ])
+    inputs = {
+        "transcript": transcript.strip(),
+        "format_instructions": parser.get_format_instructions(),
+    }
+    try:
+        return (prompt | get_llm() | parser).invoke(inputs)
+    except Exception as error:
+        message = str(error).upper()
+        temporarily_unavailable = any(
+            marker in message
+            for marker in ("503", "UNAVAILABLE")
+        )
+        if not FALLBACK_MODEL or FALLBACK_MODEL == MODEL or not temporarily_unavailable:
+            raise
+
+        logger.warning(
+            "Primary Gemini model %s is temporarily unavailable; retrying lesson generation with %s.",
+            MODEL,
+            FALLBACK_MODEL,
+        )
+        return (prompt | get_llm(FALLBACK_MODEL) | parser).invoke(inputs)
 
 
 @lru_cache(maxsize=4)

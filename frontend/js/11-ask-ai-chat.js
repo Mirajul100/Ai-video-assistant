@@ -298,6 +298,35 @@ function autoResizeChatInput() {
   el.style.height = Math.min(el.scrollHeight, 140) + "px";
 }
 
+async function clearLessonChat() {
+  if (typeof state !== "undefined" && state.chat.busy) return;
+
+  const button = document.getElementById("clearChatBtn");
+  if (button) button.disabled = true;
+  try {
+    if (state.sessionId && !state.isDemo) {
+      const response = await window.authenticatedFetch(
+        `${state.apiBase}/lesson/${encodeURIComponent(state.sessionId)}/chat`,
+        { method: "DELETE" }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not clear this lesson's chat.");
+      }
+    }
+
+    state.chat.messages = [];
+    renderChatEmpty();
+    if (typeof showToast === "function") showToast("Chat cleared.", "info");
+  } catch (error) {
+    if (typeof showToast === "function") {
+      showToast(error.message || "Could not clear this lesson's chat.", "error");
+    }
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
 function initChat() {
   document.addEventListener("submit", (e) => {
     if (e.target && e.target.id === "chatForm") {
@@ -331,9 +360,7 @@ function initChat() {
 
     // 1. Clear Chat Button
     if (e.target.closest("#clearChatBtn")) {
-      if (typeof state !== 'undefined' && state.chat) state.chat.messages = [];
-      renderChatEmpty();
-      if (typeof showToast === 'function') showToast("Chat cleared.", "info");
+      clearLessonChat();
       return;
     }
 

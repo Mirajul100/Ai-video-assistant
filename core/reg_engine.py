@@ -10,7 +10,7 @@ from functools import lru_cache
 
 load_dotenv()
 
-MODEL = os.getenv("GEMINI_MODEL1", "").strip() or "gemini-3.6-flash"
+MODEL = os.getenv("GEMINI_MODEL1", "").strip() or "gemini-4-hydrogen"
 API_KEY = os.getenv("GEMINI_API_KEY")
 MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "2"))
 MAX_OUTPUT_TOKENS = int(os.getenv("GEMINI_CHAT_MAX_OUTPUT_TOKENS", "1536"))

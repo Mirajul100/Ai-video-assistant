@@ -19,8 +19,7 @@ from langchain_core.documents import Document
 from utils.adio_processing import YouTubeDownloadError, process_audio_input
 from utils.pdf_upload import InvalidDocumentError, SUPPORTED_DOCUMENT_EXTENSIONS, load_any_document
 from core.transcribe_gemini import transcribe_chunks, combine_transcript_text
-from core.summerize import summarize_transcript, generate_title
-from core.extractor import extract_key_points, extract_questions
+from core.summerize import generate_lesson_materials
 from core.reg_engine import (
     build_reg_chain,
     load_reg_chain,
@@ -29,7 +28,16 @@ from core.reg_engine import (
     clear_chat_memory,
     restore_chat_memory,
 )
-from core.data_base import check_db_connection, init_db, save_lesson, get_user_history, get_lesson_by_id, get_lesson_chat_messages, save_lesson_chat_message
+from core.data_base import (
+    check_db_connection,
+    delete_lesson_chat_messages,
+    get_lesson_by_id,
+    get_lesson_chat_messages,
+    get_user_history,
+    init_db,
+    save_lesson,
+    save_lesson_chat_message,
+)
 from core.auth import auth_router, decode_access_token, migrate_legacy_auth_users
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
@@ -87,6 +95,26 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 def require_gemini_configuration() -> None:
     if not os.getenv("GEMINI_API_KEY", "").strip():
         raise HTTPException(503, "AI processing is not configured. Set GEMINI_API_KEY and restart the app.")
+
+
+def gemini_service_error(error: Exception) -> HTTPException | None:
+    """Translate Gemini quota and temporary availability failures for API clients."""
+    message = str(error).upper()
+    if any(marker in message for marker in ("RESOURCE_EXHAUSTED", "GOOGLERATELIMITERROR", "429 TOO MANY REQUESTS")):
+        return HTTPException(
+            status_code=429,
+            detail=(
+                "Gemini API quota is exhausted. Wait for the quota to reset or "
+                "review this project's limits and billing in Google AI Studio."
+            ),
+        )
+    if any(marker in message for marker in ("UNAVAILABLE", "503 SERVICE UNAVAILABLE", "GOOGLEMODELUNAVAILABLEERROR")):
+        return HTTPException(
+            status_code=503,
+            detail="Gemini is temporarily unavailable. Please try again shortly.",
+            headers={"Retry-After": "60"},
+        )
+    return None
 
 
 def validate_youtube_url(url: str) -> str:
@@ -237,6 +265,21 @@ def fetch_lesson(session_id: str, user_id: str = Depends(get_current_user)):
     lesson["chat_messages"] = chat_messages
     return lesson
 
+
+@app.delete("/lesson/{session_id}/chat")
+def clear_lesson_chat(session_id: str, user_id: str = Depends(get_current_user)):
+    if not user_id:
+        raise HTTPException(401, "Not authenticated.")
+    session_id = session_id.strip()
+    if not session_id:
+        raise HTTPException(400, "Session ID is required.")
+    if not get_lesson_by_id(session_id, user_id):
+        raise HTTPException(404, "Lesson not found.")
+
+    delete_lesson_chat_messages(session_id, user_id)
+    clear_chat_memory(session_id)
+    return {"success": True}
+
 @app.post("/process", response_model=ProcessResponse)
 async def process_video(payload: ProcessRequest, user_id: str = Depends(get_current_user)):
     if not user_id:
@@ -265,13 +308,14 @@ async def process_video(payload: ProcessRequest, user_id: str = Depends(get_curr
 
         sess_id = str(uuid.uuid4())
 
-        summary, title, keys, qs, chain = await asyncio.gather(
-            asyncio.to_thread(summarize_transcript, text),
-            asyncio.to_thread(generate_title, text),
-            asyncio.to_thread(extract_key_points, text),
-            asyncio.to_thread(extract_questions, text),
+        materials, chain = await asyncio.gather(
+            asyncio.to_thread(generate_lesson_materials, text),
             asyncio.to_thread(build_reg_chain, docs, sess_id)
         )
+        summary = materials.summary.strip()
+        title = materials.title.strip()
+        keys = [f"{item.title}: {item.description}" for item in materials.key_points]
+        qs = materials.questions
 
         await asyncio.to_thread(
             save_lesson,
@@ -300,8 +344,11 @@ async def process_video(payload: ProcessRequest, user_id: str = Depends(get_curr
     except YouTubeDownloadError as error:
         logger.warning("YouTube access blocked: %s", error)
         raise HTTPException(429, str(error)) from error
-    except Exception:
+    except Exception as error:
         logger.exception("PROCESS ERROR")
+        provider_error = gemini_service_error(error)
+        if provider_error:
+            raise provider_error from error
         raise HTTPException(500, "Video processing failed. Please try again.")
     finally:
         cleanup_files(chunks)
@@ -346,13 +393,14 @@ async def process_document(file: UploadFile = File(...), user_id: str = Depends(
 
         sess_id = str(uuid.uuid4())
 
-        summary, title, keys, qs, chain = await asyncio.gather(
-            asyncio.to_thread(summarize_transcript, text),
-            asyncio.to_thread(generate_title, text),
-            asyncio.to_thread(extract_key_points, text),
-            asyncio.to_thread(extract_questions, text),
+        materials, chain = await asyncio.gather(
+            asyncio.to_thread(generate_lesson_materials, text),
             asyncio.to_thread(build_reg_chain, docs, sess_id)
         )
+        summary = materials.summary.strip()
+        title = materials.title.strip()
+        keys = [f"{item.title}: {item.description}" for item in materials.key_points]
+        qs = materials.questions
 
         await asyncio.to_thread(
             save_lesson,
@@ -378,8 +426,11 @@ async def process_document(file: UploadFile = File(...), user_id: str = Depends(
     except InvalidDocumentError as error:
         logger.info("Rejected document upload (%s).", error)
         raise HTTPException(422, str(error)) from error
-    except Exception:
+    except Exception as error:
         logger.exception("DOCUMENT ERROR")
+        provider_error = gemini_service_error(error)
+        if provider_error:
+            raise provider_error from error
         raise HTTPException(500, "Document processing failed. Please try again.")
     finally:
         await file.close()
@@ -422,6 +473,9 @@ async def ask(payload: AskRequest, user_id: str = Depends(get_current_user)):
         return AskResponse(success=True, answer=str(answer))
     except Exception as e:
         logger.exception("Question answering failed.")
+        provider_error = gemini_service_error(e)
+        if provider_error:
+            raise provider_error from e
         raise HTTPException(500, "Unable to answer this question right now.")
 
 @app.post("/ask/stream")
@@ -460,11 +514,14 @@ async def ask_stream(payload: AskRequest, user_id: str = Depends(get_current_use
                 "".join(answer_parts),
             )
             yield "event: done\ndata: {}\n\n"
-        except Exception:
+        except Exception as error:
             logger.exception("Streaming question answering failed.")
+            provider_error = gemini_service_error(error)
             yield (
                 "event: error\ndata: "
-                + json.dumps({"message": "Unable to answer this question right now."})
+                + json.dumps({
+                    "message": provider_error.detail if provider_error else "Unable to answer this question right now."
+                })
                 + "\n\n"
             )
 

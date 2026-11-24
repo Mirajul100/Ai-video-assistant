@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" href="/static/image/Lumen_ai.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <!-- Google Sign-In Script -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- NEW: MathJax Configuration for LaTeX rendering -->
@@ -174,23 +174,29 @@
         <div id="dashboardEmptyState">
           <div class="hero">
             <div class="hero__copy">
-              <p class="hero__eyebrow">AI Content Assistant</p>
-              <h2 class="hero__title">Learn Smarter with AI</h2>
-              <p class="hero__subtitle">Paste a YouTube lesson link or upload a document to turn it into a clear transcript, summary, key points, and interactive Q&amp;A.</p>
+              <p class="hero__eyebrow">A clearer way to study</p>
+              <h2 class="hero__title">Turn lessons into notes you can use</h2>
+              <p class="hero__subtitle">Bring in a YouTube lesson or document. Lumen makes a transcript, a focused summary, key points, and answers grounded in the source.</p>
               <div class="hero__actions">
                 <button class="btn btn--primary" id="heroAddVideoBtn" data-view="upload">{{icon:pdfvideo}} Add content</button>
+                <button class="btn-text hero__demo" id="heroDemoBtn">Try a sample lesson <span aria-hidden="true">→</span></button>
               </div>
-              <button class="btn-text" id="heroDemoBtn">Or try a sample lesson →</button>
+
             </div>
             <div class="hero__visual" aria-hidden="true">
-              <div class="wave-panel">
-                <div class="wave-bars">
-                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+              <div class="lesson-preview">
+                <div class="lesson-preview__top">
+                  <span class="lesson-preview__source">Lesson notes</span>
+                  <span class="lesson-preview__duration">Transcript · Summary · Key ideas</span>
                 </div>
-                <div class="wave-panel__line"></div>
-                <div class="wave-panel__text-lines">
-                  <span></span><span></span><span></span>
+                <div class="lesson-preview__transcript">
+                  <span class="lesson-preview__time">04:18</span>
+                  <p>Good notes make the important ideas easier to find again.</p>
                 </div>
+                <div class="lesson-preview__rule"></div>
+                <p class="lesson-preview__label">Key idea</p>
+                <p class="lesson-preview__idea">Keep the source close. Build understanding from what the lesson actually says.</p>
+                <div class="lesson-preview__footer"><span></span> Grounded in the lesson</div>
               </div>
             </div>
           </div>
@@ -198,23 +204,23 @@
           <div class="pipeline-strip">
             <div class="pipeline-card">
               <span class="pipeline-card__icon">{{icon:doc}}</span>
-              <h3>Transcribe & Read</h3>
-              <p>Every word turned into an accurate English transcript or parsed text.</p>
+              <h3>Read the source</h3>
+              <p>Search the transcript or parsed document text.</p>
             </div>
             <div class="pipeline-card">
               <span class="pipeline-card__icon">{{icon:layers}}</span>
-              <h3>Summarize</h3>
-              <p>A clear summary of what the video or document actually teaches.</p>
+              <h3>Get the summary</h3>
+              <p>Review the main ideas from the lesson in one place.</p>
             </div>
             <div class="pipeline-card">
               <span class="pipeline-card__icon">{{icon:star}}</span>
-              <h3>Extract key points</h3>
-              <p>The ideas worth remembering, pulled out and organized.</p>
+              <h3>Review key points</h3>
+              <p>Return to the ideas worth remembering.</p>
             </div>
             <div class="pipeline-card">
               <span class="pipeline-card__icon">{{icon:chat}}</span>
-              <h3>Ask anything</h3>
-              <p>Get answers straight from the source's own words.</p>
+              <h3>Ask about the lesson</h3>
+              <p>Get answers grounded in the source text.</p>
             </div>
           </div>
         </div>
@@ -487,13 +493,13 @@
             <div class="chat-shell__heading">
               <span class="chat-shell__brand-icon" aria-hidden="true">{{icon:bot}}</span>
               <div class="chat-shell__heading-copy">
-              <span class="chat-shell__eyebrow">LUMEN / STUDY COPILOT</span>
+              <span class="chat-shell__eyebrow">Lesson assistant</span>
               <h2>Ask Lumen</h2>
               <p>Your lesson, opened up.</p>
               </div>
             </div>
             <div class="chat-shell__tools">
-              <span class="chat-grounding"><i aria-hidden="true"></i> LESSON GROUNDED</span>
+              <span class="chat-grounding"><i aria-hidden="true"></i> Grounded in this lesson</span>
               <button class="btn btn--ghost" id="clearChatBtn">{{icon:trash}} Clear chat</button>
             </div>
           </div>
