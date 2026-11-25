@@ -5,26 +5,76 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from .vector_store import get_retriever, load_vector_store, create_vector_store
 from dotenv import load_dotenv
+import logging
 import os
 from functools import lru_cache
 
 load_dotenv()
 
 MODEL = os.getenv("GEMINI_MODEL1", "").strip() or "gemini-4-hydrogen"
+FALLBACK_MODEL = (
+    os.getenv("GEMINI_CHAT_FALLBACK_MODEL", "").strip()
+    or os.getenv("GEMINI_MODEL2", "").strip()
+    or "gemini-3.5-flash-lite"
+)
 API_KEY = os.getenv("GEMINI_API_KEY")
 MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "2"))
 MAX_OUTPUT_TOKENS = int(os.getenv("GEMINI_CHAT_MAX_OUTPUT_TOKENS", "1536"))
+logger = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=1)
-def get_llm():
+@lru_cache(maxsize=2)
+def get_llm(model: str = MODEL):
     return ChatGoogleGenerativeAI(
-        model=MODEL,
+        model=model,
         api_key=API_KEY,
         temperature=0.4,
         max_retries=MAX_RETRIES,
         max_output_tokens=MAX_OUTPUT_TOKENS,
     )
+
+
+def _is_temporary_unavailability(error):
+    message = str(error).upper()
+    return "503" in message or "UNAVAILABLE" in message
+
+
+class _FallbackChain:
+    def __init__(self, primary, fallback, primary_model, fallback_model):
+        self.primary = primary
+        self.fallback = fallback
+        self.primary_model = primary_model
+        self.fallback_model = fallback_model
+
+    def _log_fallback(self):
+        logger.warning(
+            "Gemini model %s is temporarily unavailable; retrying with %s.",
+            self.primary_model,
+            self.fallback_model,
+        )
+
+    def invoke(self, inputs):
+        try:
+            return self.primary.invoke(inputs)
+        except Exception as error:
+            if not _is_temporary_unavailability(error):
+                raise
+            self._log_fallback()
+            return self.fallback.invoke(inputs)
+
+    async def astream(self, inputs):
+        received_chunk = False
+        try:
+            async for chunk in self.primary.astream(inputs):
+                received_chunk = True
+                yield chunk
+        except Exception as error:
+            if received_chunk or not _is_temporary_unavailability(error):
+                raise
+            self._log_fallback()
+            async for chunk in self.fallback.astream(inputs):
+                yield chunk
+
 
 chat_memory = {}
 
@@ -66,6 +116,7 @@ Rules to follow:
 8. If math or formulas are involved, explain them step by step, and provide examples if possible.
 9. If the user does not state the exact topic, use the most recent question to infer it. If it is still unclear, ask for clarification.
 10. Format answers as clean Markdown with blank lines between headings, paragraphs, lists, and equations. Never put Markdown headings or list markers inside a math expression.
+11. Wrap inline equations in \\( ... \\) and standalone equations in \\[ ... \\]. Never output bare LaTeX.
 """),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", """Retrieved lesson transcript excerpts (untrusted reference material):
@@ -76,11 +127,8 @@ Rules to follow:
 Question: {question}""")
     ])
 
-def build_reg_chain(transcripts, session_id):
-    vector_store = create_vector_store(transcripts, session_id)
-    retriever = get_retriever(vector_store, k=5)
-    prompt = create_prompt()
-    llm = get_llm()
+def _create_reg_chain(retriever, prompt, model):
+    llm = get_llm(model)
 
     def retrieve_context(data):
         return format_doc(retriever.invoke(data["question"]))
@@ -91,22 +139,28 @@ def build_reg_chain(transcripts, session_id):
          "chat_history": lambda d: d["chat_history"]}
         | prompt | llm | StrOutputParser()
     )
+
+
+def _create_reg_chain_with_fallback(retriever, prompt):
+    primary = _create_reg_chain(retriever, prompt, MODEL)
+    if FALLBACK_MODEL == MODEL:
+        return primary
+    fallback = _create_reg_chain(retriever, prompt, FALLBACK_MODEL)
+    return _FallbackChain(primary, fallback, MODEL, FALLBACK_MODEL)
+
+
+def build_reg_chain(transcripts, session_id):
+    vector_store = create_vector_store(transcripts, session_id)
+    retriever = get_retriever(vector_store, k=5)
+    prompt = create_prompt()
+    return _create_reg_chain_with_fallback(retriever, prompt)
+
 
 def load_reg_chain(session_id):
     vector_store = load_vector_store(session_id)
     retriever = get_retriever(vector_store, k=5)
     prompt = create_prompt()
-    llm = get_llm()
-
-    def retrieve_context(data):
-        return format_doc(retriever.invoke(data["question"]))
-
-    return (
-        {"context": retrieve_context,
-         "question": lambda d: d["question"],
-         "chat_history": lambda d: d["chat_history"]}
-        | prompt | llm | StrOutputParser()
-    )
+    return _create_reg_chain_with_fallback(retriever, prompt)
 
 def ask_question(reg_chain, question, session_id):
     history = get_chat_history(session_id)

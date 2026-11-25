@@ -91,8 +91,9 @@ The backend loads `.env` from the repository directory.
 | Variable | Purpose |
 | --- | --- |
 | `GEMINI_API_KEY` | Required for Gemini transcription and AI-generated lesson content. |
-| `GEMINI_MODEL1` | Optional Gemini model used for lesson Q&A and as a fallback when lesson generation is temporarily unavailable. |
+| `GEMINI_MODEL1` | Optional primary Gemini model used for lesson Q&A and as a fallback when lesson generation is temporarily unavailable. |
 | `GEMINI_MODEL2` | Optional Gemini model used for YouTube transcription and generated lesson materials. |
+| `GEMINI_CHAT_FALLBACK_MODEL` | Optional Q&A fallback model used when the primary model returns a temporary 503; defaults to `GEMINI_MODEL2` or `gemini-3.5-flash-lite`. |
 | `SECRET_KEY` | Required for authentication token signing. Use a private random value of at least 32 bytes. |
 | `GOOGLE_CLIENT_ID` | Optional Google OAuth 2.0 Web client ID; required for Google sign-in. |
 | `DATABASE_URL` | Optional PostgreSQL connection URL. Without it, the app uses SQLite. |

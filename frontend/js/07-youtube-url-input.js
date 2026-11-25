@@ -45,15 +45,27 @@ function resetUploadUI() {
   if (typeof clearFileSelection === "function") clearFileSelection();
 
   const idleState = document.getElementById("uploadIdleState");
-  if (idleState) idleState.hidden = false;
+  if (idleState) {
+    idleState.hidden = false;
+    idleState.style.display = "";
+  }
   
   const processingCard = document.getElementById("processingCard");
-  if (processingCard) processingCard.hidden = true;
+  if (processingCard) {
+    processingCard.hidden = true;
+    processingCard.style.display = "none";
+  }
   
   const processingErrorCard = document.getElementById("processingErrorCard");
-  if (processingErrorCard) processingErrorCard.hidden = true;
+  if (processingErrorCard) {
+    processingErrorCard.hidden = true;
+    processingErrorCard.style.display = "none";
+  }
+  const processingErrorMessage = document.getElementById("processingErrorMessage");
+  if (processingErrorMessage) processingErrorMessage.textContent = "Please try again.";
 
   if (typeof resetSteps === 'function') resetSteps();
+  if (typeof state !== "undefined") state.pendingTargetView = null;
 }
 
 function handleActionButton(targetView) {
@@ -136,13 +148,15 @@ function initUpload() {
     }
 
     if (e.target.closest("#retryProcessingBtn")) {
-      const errCard = document.getElementById("processingErrorCard");
-      if (errCard) errCard.hidden = true;
-      const input = document.getElementById("youtubeUrlInput");
-      if (input && typeof beginProcessing === 'function') {
-        if (typeof state !== 'undefined') state.pendingTargetView = "summary";
-        beginProcessing(input.value.trim());
+      const documentTab = document.getElementById("tabDocument");
+      if (
+        documentTab?.classList.contains("is-active") &&
+        typeof window.retryDocumentProcessing === "function" &&
+        window.retryDocumentProcessing()
+      ) {
+        return;
       }
+      handleActionButton("summary");
       return;
     }
 

@@ -138,7 +138,7 @@
       failAtCurrentStep();
       updateSidebarChip("error", "Processing failed");
       const message =
-        (err && err.friendly) ||
+        (typeof err?.friendly === "string" && err.friendly) ||
         "Something went wrong while processing this video. Please try again.";
       
       // Safety check to ensure we hide the processing card on failure
@@ -186,8 +186,21 @@
       // 4xx detail messages come from our own validation (e.g. "A video URL
       // is required.") and are safe to show as-is. 5xx details can include
       // raw exception text, so those fall back to a generic message instead.
-      if (response.status >= 400 && response.status < 500 && data && data.detail) {
-        throw { friendly: data.detail };
+      if (response.status >= 400 && response.status < 500) {
+        throw {
+          friendly: formatApiErrorMessage(
+            data?.detail,
+            "The video request was rejected. Check the link and try again."
+          )
+        };
+      }
+      if (response.status === 503) {
+        throw {
+          friendly: formatApiErrorMessage(
+            data?.detail,
+            "The AI service is temporarily unavailable. Please try again shortly."
+          )
+        };
       }
       throw { friendly: "Something went wrong while processing this video. Please try again." };
     }

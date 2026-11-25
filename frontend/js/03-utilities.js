@@ -55,6 +55,14 @@
     return div.innerHTML;
   }
 
+  function formatApiErrorMessage(detail, fallback) {
+    const messages = (Array.isArray(detail)
+      ? detail.map((item) => typeof item === "string" ? item : item?.msg)
+      : [typeof detail === "string" ? detail : detail?.message || detail?.msg]
+    ).filter((message) => typeof message === "string" && message.trim());
+    return messages.length ? messages.join(" ") : fallback;
+  }
+
   function wordCount(text) {
     if (!text) return 0;
     return text.trim().split(/\s+/).filter(Boolean).length;

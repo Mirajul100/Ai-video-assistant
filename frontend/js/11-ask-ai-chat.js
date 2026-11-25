@@ -5,6 +5,14 @@ function enableChatInput(enabled) {
   if (btn) btn.disabled = !enabled;
 }
 
+function renderChatAnswer(bubble, text) {
+  if (typeof renderSummaryMarkup === "function") {
+    bubble.innerHTML = renderSummaryMarkup(text);
+  } else {
+    bubble.textContent = text;
+  }
+}
+
 function renderChatEmpty() {
   const container = document.getElementById("chatMessages");
   if (!container) return;
@@ -53,8 +61,12 @@ function appendMessage(role, text) {
       ${role === "ai" ? `<div class="message__actions"><button type="button" class="message__copy-btn" data-target="${bodyId}">${copyIcon} Copy</button></div>` : ""}
     </div>`;
     
-  // Set textContent (safely escapes HTML natively).
-  wrap.querySelector(`#${bodyId}`).textContent = text;
+  const bubble = wrap.querySelector(`#${bodyId}`);
+  if (role === "ai") {
+    renderChatAnswer(bubble, text);
+  } else {
+    bubble.textContent = text;
+  }
   
   const chatMessages = document.getElementById("chatMessages");
   chatMessages.appendChild(wrap);
@@ -65,7 +77,7 @@ function appendMessage(role, text) {
     wrap.querySelector(".message__copy-btn").addEventListener("click", async (e) => {
       e.preventDefault();
       if (typeof copyToClipboard === 'function') {
-        await copyToClipboard(wrap.querySelector(".message__bubble").textContent);
+        await copyToClipboard(wrap.querySelector(".message__bubble").innerText);
       }
       if (typeof showToast === 'function') showToast("Answer copied.", "success");
     });
@@ -107,9 +119,18 @@ function appendStreamedMessage() {
       scheduleRender();
     },
     finish() {
-      if (!pendingText && frameId === null) return Promise.resolve();
+      const finishRendering = () => {
+        renderChatAnswer(bubble, bubble.textContent);
+      };
+      if (!pendingText && frameId === null) {
+        finishRendering();
+        return Promise.resolve();
+      }
       return new Promise((resolve) => {
-        finishResolver = resolve;
+        finishResolver = () => {
+          finishRendering();
+          resolve();
+        };
         scheduleRender();
       });
     },

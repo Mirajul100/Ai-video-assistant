@@ -142,7 +142,7 @@ function clearFileSelection() {
 }
 
 // GUARANTEED UI RESET FUNCTION
-function forceHideProcessingUI() {
+function forceHideProcessingUI(clearSelection = true) {
   // 1. Unconditionally hide the processing and error cards
   const processingCard = document.getElementById("processingCard");
   const processingErrorCard = document.getElementById("processingErrorCard");
@@ -162,7 +162,7 @@ function forceHideProcessingUI() {
   }
 
   // 2. Clear out the file selection so the UI returns to normal
-  clearFileSelection();
+  if (clearSelection) clearFileSelection();
 
   // 3. Reset state
   if (typeof state !== 'undefined' && state.processing) {
@@ -223,7 +223,12 @@ async function beginDocumentProcessing(file) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || "Failed to process the document.");
+      throw new Error(
+        formatApiErrorMessage(
+          errorData.detail,
+          "Failed to process the document. Please try again."
+        )
+      );
     }
 
     const data = await response.json();
@@ -256,7 +261,7 @@ async function beginDocumentProcessing(file) {
 
   } catch (err) {
     clearInterval(simTimer);
-    forceHideProcessingUI(); // Ensure loading UI is hidden
+    forceHideProcessingUI(false);
     if (typeof window.setResultLoadingState === "function") {
       window.setResultLoadingState(false);
     }
@@ -282,7 +287,14 @@ async function beginDocumentProcessing(file) {
   }
 }
 
+function retryDocumentProcessing() {
+  if (!selectedFile) return false;
+  beginDocumentProcessing(selectedFile);
+  return true;
+}
+
 // Initialize on load
 document.addEventListener("DOMContentLoaded", initDocumentUpload);
 // Also initialize immediately in case DOM is already loaded
 initDocumentUpload();
+window.retryDocumentProcessing = retryDocumentProcessing;

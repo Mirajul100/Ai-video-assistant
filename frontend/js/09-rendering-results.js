@@ -194,6 +194,8 @@ function renderDashboardLesson() {
 
 function renderMarkdownInline(value) {
   return escapeHtml(value)
+    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+    .replace(/___(.+?)___/g, "<strong><em>$1</em></strong>")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/__([^_]+)__/g, "<strong>$1</strong>")
